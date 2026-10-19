@@ -1,249 +1,49 @@
 import "./style.css";
+import { NormalizationProfile, type FieldOptions, type Store } from "@kapoorlabs/kiara-ts";
+import { createScriptEditor } from "./editor.ts";
+import { EXAMPLES, exampleScript } from "./examples.ts";
+import { evaluateScript, executeScriptRequest, type AnyRow } from "./query.ts";
 import {
-  KeywordSearch,
-  NormalizationProfile,
-  Operator,
-  Store,
-  booleanField,
-  createCondition,
-  defineSchema,
-  enumField,
-  longField,
-  numberField,
-  textField,
-  type Condition,
-  type FieldOptions,
-  type OperatorType,
-  type SchemaFieldInput,
-} from "@kapoorlabs/kiara-ts";
-
-type AnyRow = Record<string, unknown>;
-type FieldKind = "text" | "number" | "boolean" | "long" | "enum";
-type NormalizationProfileValue = (typeof NormalizationProfile)[keyof typeof NormalizationProfile];
-
-interface PlaygroundField {
-  readonly name: string;
-  readonly kind: FieldKind;
-  readonly enumValues?: readonly string[];
-  readonly options?: FieldOptions;
-}
-
-interface PlaygroundDataset {
-  readonly id: string;
-  readonly label: string;
-  readonly description: string;
-  readonly normalizationProfile: NormalizationProfileValue;
-  readonly fields: readonly PlaygroundField[];
-  readonly rows: readonly AnyRow[];
-  readonly defaultScript: string;
-}
-
-type Operation =
-  | "search"
-  | "projection"
-  | "legacyProjection"
-  | "keywordBestMatch"
-  | "keywordMinimumMatch"
-  | "queryAll";
-
-interface RawCondition {
-  readonly field: string;
-  readonly operator?: string;
-  readonly values?: readonly unknown[];
-  readonly lowerValue?: unknown;
-  readonly upperValue?: unknown;
-}
-
-interface ScriptRequest {
-  readonly operation?: Operation;
-  readonly conditions?: readonly RawCondition[];
-  readonly fields?: readonly string[];
-  readonly limit?: number;
-  readonly input?: string | readonly string[];
-  readonly keywordFields?: readonly string[];
-}
-
-const BUILT_IN_DATASETS: readonly PlaygroundDataset[] = [
-  {
-    id: "catalog-basic",
-    label: "Catalog basics",
-    description:
-      "Structured filters + keyword correction against a general catalog with tags and summary text.",
-    normalizationProfile: NormalizationProfile.NATIVE,
-    fields: [
-      { name: "title", kind: "text", options: { caseInsensitive: true } },
-      { name: "year", kind: "number" },
-      {
-        name: "tags",
-        kind: "text",
-        options: { caseInsensitive: true, secondaryType: "commaSeparatedStrings" },
-      },
-      { name: "rating", kind: "number" },
-      { name: "summary", kind: "text", options: { caseInsensitive: true, stemmedIndex: true } },
-    ],
-    rows: [
-      {
-        title: "Cast Away",
-        year: 2000,
-        tags: "survival,adventure,island",
-        rating: 8.1,
-        summary: "A stranded engineer adapts to isolation and survives on an island.",
-      },
-      {
-        title: "Apollo 13",
-        year: 1995,
-        tags: "space,mission,survival",
-        rating: 7.6,
-        summary: "A damaged spacecraft crew and support teams coordinate a safe return.",
-      },
-      {
-        title: "Big",
-        year: 1988,
-        tags: "family,comedy,growth",
-        rating: 7.3,
-        summary: "A sudden life change pushes a child to navigate an adult world.",
-      },
-    ],
-    defaultScript: `return {
-  operation: "search",
-  limit: 10,
-  conditions: [
-    {
-      field: "year",
-      operator: Operator.BETWEEN,
-      lowerValue: 1990,
-      upperValue: 2005,
-    },
-    {
-      field: "tags",
-      operator: Operator.CONTAINS_EITHER,
-      values: ["survival"],
-    },
-  ],
-};`,
-  },
-  {
-    id: "travel-ranges",
-    label: "Travel windows",
-    description:
-      "Date and date-time range indexing with point-in-range search and exclusion filters.",
-    normalizationProfile: NormalizationProfile.JAVA,
-    fields: [
-      { name: "route", kind: "text", options: { caseInsensitive: true } },
-      { name: "active", kind: "boolean" },
-      { name: "validDate", kind: "text", options: { secondaryType: "dateRange" } },
-      {
-        name: "timeWindows",
-        kind: "text",
-        options: { secondaryType: "commaSeparatedDateTimeRanges" },
-      },
-      { name: "seats", kind: "number" },
-    ],
-    rows: [
-      {
-        route: "A to B",
-        active: true,
-        validDate: "2026-10-01->2026-10-15",
-        timeWindows:
-          "2026-10-01 08:00:00->2026-10-01 12:00:00,2026-10-02 08:00:00->2026-10-02 12:00:00",
-        seats: 180,
-      },
-      {
-        route: "B to C",
-        active: true,
-        validDate: "2026-10-10->2026-10-20",
-        timeWindows: "2026-10-12 10:00:00->2026-10-12 13:00:00",
-        seats: 150,
-      },
-      {
-        route: "D to E",
-        active: false,
-        validDate: "2026-10-05->2026-10-07",
-        timeWindows: "2026-10-06 09:00:00->2026-10-06 11:00:00",
-        seats: 90,
-      },
-    ],
-    defaultScript: `return {
-  operation: "search",
-  conditions: [
-    {
-      field: "validDate",
-      operator: Operator.CONTAINS_EITHER,
-      values: ["2026-10-12"],
-    },
-    {
-      field: "active",
-      values: [true],
-    },
-  ],
-};`,
-  },
-  {
-    id: "accounts-enum",
-    label: "Accounts and tiers",
-    description: "Enum, long, nullable fields, and typed projection in one dataset.",
-    normalizationProfile: NormalizationProfile.JAVA,
-    fields: [
-      { name: "accountId", kind: "text" },
-      {
-        name: "tier",
-        kind: "enum",
-        enumValues: ["bronze", "silver", "gold", "platinum"],
-        options: { caseInsensitive: true },
-      },
-      { name: "credits", kind: "long" },
-      { name: "enabled", kind: "boolean" },
-      { name: "notes", kind: "text", options: { nullable: true, caseInsensitive: true } },
-    ],
-    rows: [
-      { accountId: "acct-100", tier: "silver", credits: "9007199254740993", enabled: true, notes: null },
-      { accountId: "acct-200", tier: "gold", credits: 1250, enabled: true, notes: "priority onboarding" },
-      { accountId: "acct-300", tier: "bronze", credits: 300, enabled: false, notes: "paused" },
-    ],
-    defaultScript: `return {
-  operation: "projection",
-  fields: ["accountId", "tier", "credits"],
-  conditions: [
-    {
-      field: "enabled",
-      values: [true],
-    },
-    {
-      field: "tier",
-      operator: Operator.CONTAINS_EITHER,
-      values: ["gold", "silver"],
-    },
-  ],
-};`,
-  },
-];
+  BUILT_IN_DATASETS, buildStore, parseDatasetCsv,
+  type DatasetDefinition, type FieldKind, type NormalizationProfileValue,
+  type PlaygroundDataset, type PlaygroundField,
+} from "./datasets.ts";
 
 const app = requireElement<HTMLDivElement>("#app");
 app.innerHTML = `
   <div class="layout">
     <aside class="sidebar">
       <h1>Kiara TS Examples</h1>
-      <p class="muted">Choose a dataset, run a script, and inspect results instantly.</p>
+      <p class="muted">Explore thousands of real CSV records with guided Kiara queries.</p>
       <nav id="dataset-menu" class="dataset-menu" aria-label="Dataset menu"></nav>
       <button id="upload-dataset" class="secondary-button" type="button">Bring your own data</button>
       <input id="upload-file" type="file" accept="application/json,.json" hidden />
-      <div class="byod-note">
-        Upload JSON with <code>fields</code> and <code>rows</code>. See README for format.
-      </div>
+      <div class="byod-note">Upload JSON with <code>fields</code> and <code>rows</code>. See README for format.</div>
     </aside>
     <main class="content">
       <section class="card">
-        <h2 id="dataset-title"></h2>
+        <h2 id="dataset-title">Loading Movies...</h2>
         <p id="dataset-description"></p>
         <p id="dataset-stats" class="muted"></p>
+        <p id="dataset-source"></p>
+        <details>
+          <summary>Field schema and sample data (first 3 rows only)</summary>
+          <pre id="schema-output"></pre>
+          <pre id="sample-output"></pre>
+        </details>
       </section>
       <section class="card">
         <div class="card-title-row">
           <h2>Search script</h2>
           <button id="reset-script" class="secondary-button" type="button">Reset script</button>
         </div>
-        <p class="muted">Use JavaScript with a return statement. <code>Operator</code> is available.</p>
-        <textarea id="script-editor" spellcheck="false"></textarea>
+        <label for="example-select">Guided query examples</label>
+        <select id="example-select"></select>
+        <p id="example-description"></p>
+        <p id="example-expected" class="muted"></p>
+        <p class="editor-help muted">Return a request object or conditions array. <code>Operator</code> is available.
+          Press Ctrl+Space for suggestions and Ctrl+Enter (Cmd+Enter on Mac) to run. Selecting an example replaces the script.</p>
+        <div id="script-editor"></div>
         <div class="actions">
           <button id="run-script" class="primary-button" type="button">Run script</button>
           <span id="status-text" class="status" role="status" aria-live="polite"></span>
@@ -263,51 +63,55 @@ const uploadFileInput = requireElement<HTMLInputElement>("#upload-file");
 const datasetTitle = requireElement<HTMLElement>("#dataset-title");
 const datasetDescription = requireElement<HTMLElement>("#dataset-description");
 const datasetStats = requireElement<HTMLElement>("#dataset-stats");
-const scriptEditor = requireElement<HTMLTextAreaElement>("#script-editor");
+const datasetSource = requireElement<HTMLElement>("#dataset-source");
+const schemaOutput = requireElement<HTMLElement>("#schema-output");
+const sampleOutput = requireElement<HTMLElement>("#sample-output");
+const exampleSelect = requireElement<HTMLSelectElement>("#example-select");
+const exampleDescription = requireElement<HTMLElement>("#example-description");
+const exampleExpected = requireElement<HTMLElement>("#example-expected");
+const scriptEditor = createScriptEditor(requireElement<HTMLElement>("#script-editor"));
 const runScriptButton = requireElement<HTMLButtonElement>("#run-script");
 const resetScriptButton = requireElement<HTMLButtonElement>("#reset-script");
 const statusText = requireElement<HTMLElement>("#status-text");
 const resultOutput = requireElement<HTMLElement>("#result-output");
 
 let uploadedDataset: PlaygroundDataset | undefined;
-let activeDataset: PlaygroundDataset = BUILT_IN_DATASETS[0];
-let activeStore: Store<AnyRow> = buildStore(activeDataset);
+let activeDataset: PlaygroundDataset | undefined;
+let activeStore: Store<AnyRow> | undefined;
+let selectedId = BUILT_IN_DATASETS[0].id;
+let loading = false;
+let loadController: AbortController | undefined;
+const cache = new Map<string, { dataset: PlaygroundDataset; store: Store<AnyRow>; milliseconds: number }>();
 
-renderDatasetMenu();
-applyDataset(activeDataset, true);
+import.meta.hot?.dispose(() => {
+  loadController?.abort();
+  scriptEditor.dispose();
+});
 
 runScriptButton.addEventListener("click", () => {
+  if (loading || !activeStore) return;
   try {
-    const request = evaluateScript(scriptEditor.value);
-    const response = executeScriptRequest(activeStore, request);
+    const started = performance.now();
+    const response = executeScriptRequest(activeStore, evaluateScript(scriptEditor.getValue()));
+    const elapsed = performance.now() - started;
     resultOutput.textContent = JSON.stringify(response, null, 2);
-    setStatus("Script executed successfully.", false);
+    setStatus(`Script executed successfully in ${elapsed.toFixed(1)} ms against ${activeStore.getLoadedRowCount().toLocaleString()} indexed records.`, false);
   } catch (error) {
     resultOutput.textContent = formatError(error);
     setStatus("Script failed. Review the error details.", true);
   }
 });
 
-resetScriptButton.addEventListener("click", () => {
-  scriptEditor.value = activeDataset.defaultScript;
-  setStatus("Script reset to dataset default.", false);
-});
-
+scriptEditor.onRun(() => runScriptButton.click());
+exampleSelect.addEventListener("change", loadSelectedExample);
+resetScriptButton.addEventListener("click", loadSelectedExample);
 uploadDatasetButton.addEventListener("click", () => uploadFileInput.click());
-
 uploadFileInput.addEventListener("change", async () => {
   const [file] = uploadFileInput.files ?? [];
-  if (file === undefined) {
-    return;
-  }
-
+  if (!file) return;
   try {
-    const text = await file.text();
-    const parsed = JSON.parse(text) as unknown;
-    uploadedDataset = toUploadedDataset(parsed);
-    applyDataset(uploadedDataset, true);
-    renderDatasetMenu();
-    setStatus(`Loaded custom dataset from ${file.name}.`, false);
+    const dataset = toUploadedDataset(JSON.parse(await file.text()));
+    await selectDataset(dataset);
   } catch (error) {
     setStatus("Upload failed. Verify JSON structure and field definitions.", true);
     resultOutput.textContent = formatError(error);
@@ -316,345 +120,208 @@ uploadFileInput.addEventListener("change", async () => {
   }
 });
 
-function renderDatasetMenu(): void {
-  datasetMenu.innerHTML = "";
-  const datasets = uploadedDataset === undefined
-    ? [...BUILT_IN_DATASETS]
-    : [...BUILT_IN_DATASETS, uploadedDataset];
+renderDatasetMenu();
+void selectDataset(BUILT_IN_DATASETS[0]);
 
+function renderDatasetMenu(): void {
+  datasetMenu.replaceChildren();
+  const datasets = uploadedDataset ? [...BUILT_IN_DATASETS, uploadedDataset] : BUILT_IN_DATASETS;
   for (const dataset of datasets) {
     const button = document.createElement("button");
     button.type = "button";
-    button.className = dataset.id === activeDataset.id ? "menu-item active" : "menu-item";
-    button.textContent = dataset.label;
-    button.addEventListener("click", () => applyDataset(dataset, true));
+    button.className = dataset.id === selectedId ? "menu-item active" : "menu-item";
+    button.textContent = `${dataset.label}${dataset.recordCount ? ` (${dataset.recordCount.toLocaleString()})` : ""}`;
+    button.addEventListener("click", () => void selectDataset(dataset));
     datasetMenu.append(button);
   }
 }
 
-function applyDataset(dataset: PlaygroundDataset, resetScript: boolean): void {
+async function selectDataset(definition: DatasetDefinition | PlaygroundDataset): Promise<void> {
+  loadController?.abort();
+  const controller = new AbortController();
+  loadController = controller;
+  selectedId = definition.id;
+  setLoading(true);
+  renderDatasetMenu();
+  setStatus(`Loading and indexing ${definition.label}...`, false);
+  try {
+    let prepared = definition.id === "uploaded-dataset" ? undefined : cache.get(definition.id);
+    if (!prepared) {
+      const started = performance.now();
+      let dataset: PlaygroundDataset;
+      if ("rows" in definition) {
+        dataset = definition;
+      } else {
+        if (!definition.csvFile) throw new Error(`No CSV file configured for ${definition.label}.`);
+        const url = `${import.meta.env.BASE_URL}data/${definition.csvFile}`;
+        const response = await fetch(url, { signal: controller.signal });
+        if (!response.ok) throw new Error(`Could not load ${definition.csvFile}: HTTP ${response.status}.`);
+        const csv = await response.text();
+        if (controller.signal.aborted) return;
+        dataset = parseDatasetCsv(definition, csv);
+      }
+      if (controller.signal.aborted) return;
+      const store = buildStore(dataset);
+      prepared = { dataset, store, milliseconds: performance.now() - started };
+      cache.set(definition.id, prepared);
+    }
+    if (controller.signal.aborted) return;
+    if (definition.id === "uploaded-dataset") uploadedDataset = prepared.dataset;
+    applyDataset(prepared.dataset, prepared.store, prepared.milliseconds);
+  } catch (error) {
+    if (controller.signal.aborted) return;
+    selectedId = activeDataset?.id ?? definition.id;
+    if (!activeDataset) datasetTitle.textContent = `${definition.label} could not be loaded`;
+    resultOutput.textContent = formatError(error);
+    setStatus(`Failed to load ${definition.label}. Select the dataset again to retry.`, true);
+    renderDatasetMenu();
+  } finally {
+    if (loadController === controller) setLoading(false);
+  }
+}
+
+function setLoading(value: boolean): void {
+  loading = value;
+  runScriptButton.disabled = value || !activeStore;
+  resetScriptButton.disabled = value || !activeDataset;
+  exampleSelect.disabled = value || !activeDataset;
+  uploadDatasetButton.disabled = value;
+  app.setAttribute("aria-busy", String(value));
+}
+
+function applyDataset(dataset: PlaygroundDataset, store: Store<AnyRow>, milliseconds: number): void {
   activeDataset = dataset;
-  activeStore = buildStore(dataset);
+  activeStore = store;
   datasetTitle.textContent = dataset.label;
   datasetDescription.textContent = dataset.description;
-  datasetStats.textContent = `${dataset.rows.length} rows · ${dataset.fields.length} fields · normalization profile: ${dataset.normalizationProfile}`;
-  if (resetScript) {
-    scriptEditor.value = dataset.defaultScript;
+  datasetStats.textContent = `${dataset.rows.length.toLocaleString()} records indexed (all CSV rows) · ${dataset.fields.length} fields · normalization: ${dataset.normalizationProfile} · initial load + preparation: ${milliseconds.toFixed(0)} ms`;
+  if (!dataset.csvFile) datasetStats.textContent = `${dataset.rows.length.toLocaleString()} uploaded records indexed · ${dataset.fields.length} fields`;
+  datasetSource.replaceChildren();
+  if (dataset.csvFile && dataset.sourceUrl) {
+    const csvLink = document.createElement("a");
+    csvLink.href = `${import.meta.env.BASE_URL}data/${dataset.csvFile}`;
+    csvLink.textContent = `Download ${dataset.csvFile}`;
+    csvLink.download = dataset.csvFile;
+    const sourceLink = document.createElement("a");
+    sourceLink.href = dataset.sourceUrl;
+    sourceLink.textContent = "Java demo source";
+    sourceLink.target = "_blank";
+    sourceLink.rel = "noopener noreferrer";
+    datasetSource.append(csvLink, " · ", sourceLink);
   }
-  resultOutput.textContent = "";
+  schemaOutput.textContent = JSON.stringify(dataset.fields, null, 2);
+  sampleOutput.textContent = JSON.stringify(dataset.rows.slice(0, 3), null, 2);
+  scriptEditor.setFields(dataset.fields);
+  exampleSelect.replaceChildren();
+  const defaultOption = document.createElement("option");
+  defaultOption.value = "";
+  defaultOption.textContent = "Dataset starter script";
+  exampleSelect.append(defaultOption);
+  for (const example of EXAMPLES[dataset.id] ?? []) {
+    const option = document.createElement("option");
+    option.value = example.id;
+    option.textContent = example.title;
+    exampleSelect.append(option);
+  }
+  loadSelectedExample();
   renderDatasetMenu();
 }
 
-function buildStore(dataset: PlaygroundDataset): Store<AnyRow> {
-  const schemaFields = dataset.fields.map(createSchemaField);
-  const schema = defineSchema<AnyRow>(schemaFields);
-  const store = new Store(schema, { normalizationProfile: dataset.normalizationProfile });
-  store.loadRows(dataset.rows);
-  store.prepare();
-  return store;
-}
-
-function createSchemaField(field: PlaygroundField): SchemaFieldInput<AnyRow, string> {
-  const options = field.options ?? {};
-  switch (field.kind) {
-    case "text":
-      return textField<AnyRow, string>(field.name, options);
-    case "number":
-      return numberField<AnyRow, string>(field.name, options);
-    case "boolean":
-      return booleanField<AnyRow, string>(field.name, options);
-    case "long":
-      return longField<AnyRow, string>(field.name, options);
-    case "enum": {
-      if (field.enumValues === undefined || field.enumValues.length === 0) {
-        throw new Error(`Enum field "${field.name}" must include enumValues.`);
-      }
-      return enumField<AnyRow, string>(field.name, field.enumValues, options);
-    }
-    default:
-      throw new Error(`Unsupported field kind: ${(field as { kind: string }).kind}`);
-  }
-}
-
-function evaluateScript(script: string): ScriptRequest {
-  const runner = new Function(
-    "ctx",
-    `"use strict"; const { Operator } = ctx; ${script}`,
-  ) as (ctx: { readonly Operator: typeof Operator }) => unknown;
-  const rawResult = runner({ Operator });
-  if (Array.isArray(rawResult)) {
-    return { operation: "search", conditions: rawResult as RawCondition[] };
-  }
-  if (isObject(rawResult)) {
-    return rawResult as ScriptRequest;
-  }
-  throw new Error("Script must return an object or an array of conditions.");
-}
-
-function executeScriptRequest(store: Store<AnyRow>, request: ScriptRequest): unknown {
-  const operation = request.operation ?? "search";
-  switch (operation) {
-    case "queryAll":
-      return store.queryAll(request.limit);
-    case "search": {
-      const conditions = normalizeConditions(request.conditions ?? []);
-      return store.search(conditions, request.limit);
-    }
-    case "projection": {
-      const fields = assertStringArray(request.fields, "fields");
-      const conditions = normalizeConditions(request.conditions ?? []);
-      return store.searchProjection(conditions, fields, request.limit);
-    }
-    case "legacyProjection": {
-      const fields = request.fields === undefined ? undefined : assertStringArray(request.fields, "fields");
-      const conditions = normalizeConditions(request.conditions ?? []);
-      return store.searchLegacyProjection(conditions, fields, request.limit);
-    }
-    case "keywordBestMatch":
-    case "keywordMinimumMatch": {
-      if (request.input === undefined) {
-        throw new Error("Keyword operations require input.");
-      }
-      const keywordSearch = new KeywordSearch(store);
-      const keywordFields = request.keywordFields === undefined
-        ? undefined
-        : assertStringArray(request.keywordFields, "keywordFields");
-      const keywordOptions = {
-        conditions: request.conditions === undefined ? undefined : normalizeConditions(request.conditions),
-        fields: keywordFields,
-        limit: request.limit,
-      };
-      return operation === "keywordBestMatch"
-        ? keywordSearch.bestMatch(request.input, keywordOptions)
-        : keywordSearch.minimumMatch(request.input, keywordOptions);
-    }
-    default:
-      throw new Error(`Unsupported operation: ${String(operation)}`);
-  }
-}
-
-function normalizeConditions(rawConditions: readonly RawCondition[]): readonly Condition<AnyRow>[] {
-  return rawConditions.map((raw) => {
-    const operator = parseOperator(raw.operator);
-    if (operator === Operator.BETWEEN) {
-      return createCondition<AnyRow, string>({
-        field: raw.field,
-        operator: Operator.BETWEEN,
-        lowerValue: raw.lowerValue,
-        upperValue: raw.upperValue,
-      });
-    }
-    return createCondition<AnyRow, string>({
-      field: raw.field,
-      operator,
-      values: raw.values ?? [],
-    });
-  });
-}
-
-function parseOperator(raw: string | undefined): OperatorType | undefined {
-  if (raw === undefined) {
-    return undefined;
-  }
-  if (Object.values(Operator).includes(raw as OperatorType)) {
-    return raw as OperatorType;
-  }
-  throw new Error(`Unknown operator "${raw}".`);
+function loadSelectedExample(): void {
+  if (!activeDataset) return;
+  const example = EXAMPLES[activeDataset.id]?.find((item) => item.id === exampleSelect.value);
+  scriptEditor.setValue(example ? exampleScript(example) : activeDataset.defaultScript);
+  exampleDescription.textContent = example?.description ?? "The store contains the entire CSV. The result limit controls returned rows, not loaded records.";
+  exampleExpected.textContent = example ? `Expected: ${example.expected}` : "";
+  resultOutput.textContent = "";
+  setStatus(example?.error ? "This example intentionally produces an error." : "Script ready to run.", false);
 }
 
 function toUploadedDataset(raw: unknown): PlaygroundDataset {
-  if (!isObject(raw)) {
-    throw new Error("Uploaded JSON must be an object.");
-  }
-  const fieldsRaw = raw.fields;
-  if (!Array.isArray(fieldsRaw) || fieldsRaw.length === 0) {
-    throw new Error("Uploaded JSON requires a non-empty fields array.");
-  }
-  const rowsRaw = raw.rows;
-  if (!Array.isArray(rowsRaw)) {
-    throw new Error("Uploaded JSON requires rows array.");
-  }
-
-  const fields = fieldsRaw.map(normalizeUploadedField);
-  const rows = rowsRaw.map((row, index) => {
-    if (!isObject(row) || Array.isArray(row)) {
-      throw new Error(`rows[${index}] must be an object.`);
-    }
-    return row as AnyRow;
+  if (!isObject(raw)) throw new Error("Uploaded JSON must be an object.");
+  if (!Array.isArray(raw.fields) || raw.fields.length === 0) throw new Error("Uploaded JSON requires a non-empty fields array.");
+  if (!Array.isArray(raw.rows)) throw new Error("Uploaded JSON requires rows array.");
+  const fields = raw.fields.map(normalizeUploadedField);
+  const rows = raw.rows.map((row, index) => {
+    if (!isObject(row)) throw new Error(`rows[${index}] must be an object.`);
+    return row;
   });
-
-  const label = typeof raw.name === "string" && raw.name.trim().length > 0
-    ? raw.name.trim()
-    : "Uploaded dataset";
-  const description = typeof raw.description === "string" && raw.description.trim().length > 0
-    ? raw.description.trim()
-    : "User-provided dataset loaded from local JSON.";
-
-  const defaultScript = typeof raw.defaultScript === "string" && raw.defaultScript.trim().length > 0
-    ? raw.defaultScript
-    : createDefaultScript(fields);
-
   return {
     id: "uploaded-dataset",
-    label,
-    description,
+    label: typeof raw.name === "string" && raw.name.trim() ? raw.name.trim() : "Uploaded dataset",
+    description: typeof raw.description === "string" && raw.description.trim() ? raw.description.trim() : "User-provided dataset loaded from local JSON.",
     normalizationProfile: normalizeProfile(raw.normalizationProfile),
-    fields,
-    rows,
-    defaultScript,
+    fields, rows,
+    defaultScript: typeof raw.defaultScript === "string" && raw.defaultScript.trim()
+      ? raw.defaultScript : 'return { operation: "queryAll", limit: 20 };',
   };
 }
 
 function normalizeUploadedField(raw: unknown): PlaygroundField {
-  if (!isObject(raw)) {
-    throw new Error("Each field must be an object.");
-  }
+  if (!isObject(raw)) throw new Error("Each field must be an object.");
   const name = expectString(raw.name, "field.name");
   const kind = expectFieldKind(raw.kind);
   const options = normalizeFieldOptions(raw.options);
-  if (kind !== "enum") {
-    return { name, kind, options };
-  }
+  if (kind !== "enum") return { name, kind, options };
   const enumValues = assertStringArray(raw.enumValues, `enumValues for field "${name}"`);
-  if (enumValues.length === 0) {
-    throw new Error(`Enum field "${name}" requires at least one enum value.`);
-  }
+  if (!enumValues.length) throw new Error(`Enum field "${name}" requires at least one enum value.`);
   return { name, kind, enumValues, options };
 }
 
 function normalizeFieldOptions(raw: unknown): FieldOptions {
-  if (raw === undefined) {
-    return {};
-  }
-  if (!isObject(raw)) {
-    throw new Error("field.options must be an object.");
-  }
+  if (raw === undefined) return {};
+  if (!isObject(raw)) throw new Error("field.options must be an object.");
   const options: Record<string, unknown> = {};
-  for (const key of [
-    "nullable",
-    "caseInsensitive",
-    "ignoreIndex",
-    "oneEditAway",
-    "predictable",
-    "stemmedIndex",
-  ] as const) {
+  for (const key of ["nullable", "caseInsensitive", "ignoreIndex", "oneEditAway", "predictable", "stemmedIndex"] as const) {
     const value = raw[key];
     if (value !== undefined) {
-      if (typeof value !== "boolean") {
-        throw new Error(`field.options.${key} must be boolean.`);
-      }
+      if (typeof value !== "boolean") throw new Error(`field.options.${key} must be boolean.`);
       options[key] = value;
     }
   }
-
-  if (raw.secondaryType !== undefined) {
-    if (typeof raw.secondaryType !== "string") {
-      throw new Error("field.options.secondaryType must be a string.");
+  for (const key of ["secondaryType", "format"] as const) {
+    if (raw[key] !== undefined) {
+      if (typeof raw[key] !== "string") throw new Error(`field.options.${key} must be a string.`);
+      options[key] = raw[key];
     }
-    options.secondaryType = raw.secondaryType;
   }
-
-  if (raw.format !== undefined) {
-    if (typeof raw.format !== "string") {
-      throw new Error("field.options.format must be a string.");
-    }
-    options.format = raw.format;
-  }
-
   if (raw.numericStartPos !== undefined) {
-    if (typeof raw.numericStartPos !== "number") {
-      throw new Error("field.options.numericStartPos must be a number.");
-    }
+    if (typeof raw.numericStartPos !== "number") throw new Error("field.options.numericStartPos must be a number.");
     options.numericStartPos = raw.numericStartPos;
   }
   return options as FieldOptions;
 }
 
-function createDefaultScript(fields: readonly PlaygroundField[]): string {
-  const firstField = fields[0];
-  if (firstField === undefined) {
-    return `return { operation: "queryAll", limit: 50 };`;
-  }
-
-  if (firstField.kind === "number" || firstField.kind === "long") {
-    return `return {
-  operation: "search",
-  conditions: [
-    {
-      field: "${firstField.name}",
-      operator: Operator.GREATER_THAN,
-      values: [0],
-    },
-  ],
-  limit: 50,
-};`;
-  }
-
-  return `return {
-  operation: "search",
-  conditions: [
-    {
-      field: "${firstField.name}",
-      values: ["sample"],
-    },
-  ],
-  limit: 50,
-};`;
-}
-
 function normalizeProfile(raw: unknown): NormalizationProfileValue {
-  if (raw === undefined) {
-    return NormalizationProfile.NATIVE;
-  }
-  if (typeof raw !== "string") {
-    throw new Error("normalizationProfile must be a string.");
-  }
+  if (raw === undefined) return NormalizationProfile.NATIVE;
+  if (typeof raw !== "string") throw new Error("normalizationProfile must be a string.");
   const normalized = raw.trim().toLowerCase();
-  if (normalized === NormalizationProfile.JAVA || normalized === "java") {
-    return NormalizationProfile.JAVA;
-  }
-  if (normalized === NormalizationProfile.NATIVE || normalized === "native") {
-    return NormalizationProfile.NATIVE;
-  }
+  if (normalized === NormalizationProfile.JAVA || normalized === "java") return NormalizationProfile.JAVA;
+  if (normalized === NormalizationProfile.NATIVE || normalized === "native") return NormalizationProfile.NATIVE;
   throw new Error(`Unsupported normalizationProfile "${raw}". Use "java" or "native".`);
 }
 
 function expectString(value: unknown, label: string): string {
-  if (typeof value !== "string" || value.trim().length === 0) {
-    throw new Error(`${label} must be a non-empty string.`);
-  }
+  if (typeof value !== "string" || !value.trim()) throw new Error(`${label} must be a non-empty string.`);
   return value;
 }
 
 function expectFieldKind(value: unknown): FieldKind {
-  if (
-    value === "text" ||
-    value === "number" ||
-    value === "boolean" ||
-    value === "long" ||
-    value === "enum"
-  ) {
-    return value;
-  }
+  if (value === "text" || value === "number" || value === "long" || value === "boolean" || value === "enum") return value;
   throw new Error(`Unsupported field kind "${String(value)}".`);
 }
 
 function assertStringArray(value: unknown, label: string): string[] {
-  if (!Array.isArray(value) || value.some((entry) => typeof entry !== "string")) {
-    throw new Error(`${label} must be an array of strings.`);
-  }
+  if (!Array.isArray(value) || value.some((entry) => typeof entry !== "string")) throw new Error(`${label} must be an array of strings.`);
   return [...value];
 }
 
 function isObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function formatError(error: unknown): string {
-  if (error instanceof Error) {
-    return `${error.name}: ${error.message}`;
-  }
-  return `Unknown error: ${String(error)}`;
+  return error instanceof Error ? `${error.name}: ${error.message}` : `Unknown error: ${String(error)}`;
 }
 
 function setStatus(message: string, isError: boolean): void {
@@ -664,8 +331,6 @@ function setStatus(message: string, isError: boolean): void {
 
 function requireElement<TElement extends Element>(selector: string): TElement {
   const element = document.querySelector<TElement>(selector);
-  if (element === null) {
-    throw new Error(`Missing required element: ${selector}`);
-  }
+  if (!element) throw new Error(`Missing required element: ${selector}`);
   return element;
 }

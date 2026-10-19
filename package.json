@@ -5,13 +5,22 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
     "build": "tsc && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
-    "@kapoorlabs/kiara-ts": "^1.0.0"
+    "@kapoorlabs/kiara-ts": "^1.0.0",
+    "monaco-editor": "^0.55.1",
+    "papaparse": "^5.5.3"
+  },
+  "overrides": {
+    "monaco-editor": {
+      "dompurify": "^3.4.16"
+    }
   },
   "devDependencies": {
+    "@types/papaparse": "^5.3.16",
     "typescript": "~6.0.2",
     "vite": "^8.3.0"
   }

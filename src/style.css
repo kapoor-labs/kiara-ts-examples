@@ -95,6 +95,16 @@ textarea {
   font-size: 0.95rem;
 }
 
+button:disabled,
+select:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+a {
+  color: var(--accent);
+}
+
 .primary-button {
   background: rgba(110, 168, 254, 0.18);
   border-color: rgba(110, 168, 254, 0.7);
@@ -112,12 +122,15 @@ textarea {
 }
 
 .content {
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
   padding: 1.2rem;
   display: grid;
   gap: 1rem;
 }
 
 .card {
+  min-width: 0;
   border: 1px solid var(--border);
   border-radius: 0.75rem;
   background: var(--panel);
@@ -138,14 +151,42 @@ textarea {
 
 #script-editor {
   width: 100%;
-  min-height: 280px;
+  height: 380px;
   margin-top: 0.7rem;
   border-radius: 0.6rem;
   border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+#example-select {
+  display: block;
+  width: 100%;
+  margin-top: 0.4rem;
+  padding: 0.6rem;
   background: var(--panel-strong);
   color: var(--text);
-  padding: 0.75rem;
-  resize: vertical;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+}
+
+.editor-help {
+  margin-top: 0.75rem;
+  font-size: 0.9rem;
+}
+
+details {
+  margin-top: 0.75rem;
+}
+
+summary {
+  cursor: pointer;
+}
+
+#schema-output,
+#sample-output {
+  max-height: 260px;
+  overflow: auto;
+  font-size: 0.85rem;
 }
 
 .actions {
