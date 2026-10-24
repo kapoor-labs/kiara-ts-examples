@@ -97,8 +97,20 @@ It enforces **100% line, branch, and function coverage** for
 separately; this is not a claim of 100% DOM or worker-entry coverage.
 
 Publication-ready roundup articles:
-- [Medium: Beyond the Search Box: 7 Business Features Built with Kiara](./articles/seven-business-features-with-kiara-medium.md)
-- [LinkedIn: Seven Business Features, Not Seven Variations of a Search Box](./articles/seven-business-features-with-kiara-linkedin.md)
+- [Medium: Tags, Dates, and Ranges: Build Richer Filters with KiaraDB](./articles/seven-business-features-with-kiara-medium.md)
+- [LinkedIn: New Filter Combination? You Shouldn't Need a New Index.](./articles/seven-business-features-with-kiara-linkedin.md)
+
+HackerNoon article:
+- [Search Any Field Combination Without Managing Composite Indexes](./articles/kiaradb-local-search-hackernoon.md)
+
+Campaign materials:
+- [Evidence-backed capability inventory](./articles/campaign/capability-inventory.md)
+- [Editorial plan and feature coverage](./articles/campaign/editorial-plan.md)
+- [Publication recommendations and asset index](./articles/campaign/publishing-guide.md)
+
+Article covers are supplied as publication-ready PNGs and editable SVGs in
+[articles/images](./articles/images). Runnable article examples are verified by
+`node --experimental-strip-types --test tests/articles.test.ts`.
 
 ### Filterless Parts Finder — Kiara 1.1.0
 
@@ -145,8 +157,8 @@ including the shared traditional-filter and chip-expression helpers. The DOM
 view is browser-smoke-tested separately; this is not a claim of 100% DOM coverage.
 
 Publication-ready articles:
-- [Medium: Stop Making Users Find the Right Filter](./articles/filterless-parts-finder-medium.md)
-- [LinkedIn: Your Users Know the Value. Why Must They Find the Filter?](./articles/filterless-parts-finder-linkedin.md)
+- [Medium: 500ms or 0.5s? Make Equivalent Queries Return the Same Results.](./articles/filterless-parts-finder-medium.md)
+- [LinkedIn: Type the Value. Let KiaraDB Find the Field.](./articles/filterless-parts-finder-linkedin.md)
 
 ### Airport type-ahead
 
@@ -162,7 +174,7 @@ Escape or blur closes the list. Inputs are bounded to 128 characters and ten
 whitespace-separated words, with limits of one through ten results.
 
 Read the publication-ready tutorial:
-[Build an Airport Type-Ahead Engine with Kiara and TypeScript](./articles/airport-typeahead-with-kiara-typescript.md).
+[Fix the Typo, Keep the Filter: Better Text Search with KiaraDB](./articles/airport-typeahead-with-kiara-typescript.md).
 
 ### Runtime hierarchical configuration
 
@@ -185,7 +197,7 @@ storage. The TypeScript keyword `minimumMatch` is deliberately not used as a
 substitute for Java's different hierarchical matching behavior.
 
 Read the publication-ready tutorial:
-[Build a Runtime Configuration Engine with Kiara and TypeScript](./articles/runtime-config-with-kiara-typescript.md).
+[Which Rule Won? Query, Explain, and Refresh Configuration with KiaraDB](./articles/runtime-config-with-kiara-typescript.md).
 
 ## Real CSV datasets
 

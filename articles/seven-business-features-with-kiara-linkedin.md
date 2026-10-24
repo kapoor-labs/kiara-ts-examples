@@ -1,171 +1,64 @@
-# Seven Business Features, Not Seven Variations of a Search Box
+# New Filter Combination? You Shouldn't Need a New Index.
 
-## What I wanted a Kiara demo to show a developer
+Today users filter by status. Tomorrow they add a score, two tags, and a date window.
+KiaraDB lets you combine searchable fields without manually designing a composite index for each combination.
+Define the fields, load the records, prepare once.
+Here is what that buys you beyond another search box.
 
-A database demonstration can return the right rows and still leave an important
-question unanswered:
+![Several field combinations share one prepared KiaraDB store.](./images/seven-features-linkedin.png)
 
-**"What would I actually build with this in my business application?"**
+## Change the question, not the index definition
 
-I wanted the Kiara examples to answer that question.
+Imagine these requests against the same records:
 
-Not with seven renamed filter forms, but with seven working interactions that
-show different capabilities.
+- Status is active.
+- Status is active **and** score is at least 80.
+- Both conditions, plus **all** selected tags.
 
-The new examples use **Kiara 1.1.0**, TypeScript, and a browser interface where you
-can inspect what the system understood and which conditions it applied.
+With KiaraDB, your application composes conditions over the prepared store.
+It does not hand-build an index for each of those combinations.
 
-Here is the lineup.
+**Automatic indexing is the feature. "No indexes" is not the claim.**
+You still define a schema, and the records and indexes occupy memory.
 
-## 1. Product discovery that combines words and requirements
+## Go beyond equality
 
-Search the gift catalog for:
+The same query layer supports requirements that are awkward to express as
+ordinary text search:
 
-> bag
+- **Numbers:** exclusive bounds, inclusive bounds, and inclusive ranges.
+- **Collections:** require ALL members, accept ANY, or exclude selected members.
+- **Stored intervals:** find records whose numeric or date range contains a point.
+- **Text plus filters:** recover from a typo without relaxing an exact condition.
+- **Projection:** return the fields the caller needs, with their types preserved.
 
-Then add strict filters:
+These are different questions, not five renamed dropdowns.
 
-> price<5GBP sold>=100
+## Give users another way to ask
 
-That returns **115 products** in the bundled snapshot.
+The TypeScript library's optional interpreter can turn:
 
-The interface combines lexical title matching with explicit numeric constraints,
-an optional market facet, and product cards. Unknown strict clauses block the
-search rather than being quietly ignored.
+```text
+status:active score>=80
+```
 
-**The business use:** help users find products without requiring a separate
-navigation journey through every filter.
+into inspectable conditions. It can also discover whole values across eligible
+fields, resolve declared aliases, and flag ambiguity instead of guessing.
 
-## 2. Search that does not demand perfect spelling
+That means less time navigating a filter panel and more visibility into what
+the query actually means.
 
-Type `latern`.
+## Where to start
 
-The example shows the correction to `lantern` and returns **20 products**.
+KiaraDB has Java and TypeScript implementations. The shared opportunity is
+read-oriented querying over prepared data, not a browser-only database pitch.
+The TypeScript package also has no runtime dependencies of its own.
 
-Type `decorating`, and English stemming connects it to titles containing words
-such as `DECORATION`.
+For high-frequency transactional writes or durable storage, keep the system
+responsible for those jobs. For changing combinations of filters over a
+read-mostly dataset, this is worth trying.
 
-The corrections and tokens are inspectable. This is lexical retrieval, not an
-LLM guessing at a customer's meaning.
-
-**The business use:** make product lookup and reference tools more forgiving
-without hiding how the search works.
-
-## 3. Compatibility expressed as requirements, not substrings
-
-Suppose an integration must support OAuth and webhooks but must not require an
-on-premises agent.
-
-The checker lets users switch between **ALL** and **ANY** required capabilities,
-while keeping exclusions explicit.
-
-In its eight fictional teaching fixtures, that switch changes the result from
-**2 to 4 connectors** with the same exclusion applied.
-
-**The business use:** compatibility and qualification workflows built around
-sets of capabilities.
-
-## 4. Search records whose specifications are ranges
-
-The operating-envelope finder asks a different question:
-
-> Which component ranges cover my entire requested temperature interval?
-
-The source snapshot produces **14 matches** for -40 through 125 Celsius,
-**one** at 150, and **none** at 200.
-
-It retains all 16,802 source records, but only 15 have a supported temperature
-specification. Missing values remain missing; they are not filled with
-plausible defaults. Matches are not engineering certification.
-
-**The business use:** specification lookup where the record describes an
-operating interval rather than one measurement.
-
-## 5. Refresh data without activating an incomplete replacement
-
-The catalog-refresh example deliberately tries a broken import.
-
-It is rejected. The active revision remains unchanged.
-
-A valid replacement can then be prepared and explicitly activated together with
-a new query interpreter.
-
-Kiara prepares the new store; the application owns validation, the reference
-swap, and revision labels. This is not presented as a distributed transaction
-system.
-
-**The business use:** refreshable catalogs and imported reference tables with
-an understandable failure path.
-
-## 6. Move query execution off the UI thread
-
-The worker example runs the same workload through a main-thread adapter and a
-real Web Worker.
-
-Users can compare elapsed time, returned projections, and observed animation
-frames. They can also see progress and cancel a worker run.
-
-There is no automatic claim that workers are faster: messaging has overhead,
-and workload and tab visibility affect the measurements.
-
-**The business use:** explore browser-side execution trade-offs with actual data
-instead of relying on a generic performance claim.
-
-## 7. Try the library with your own CSV
-
-This is the adoption path I find most interesting.
-
-Drop a CSV, review column types, choose indexed fields, prepare a store, and
-query it.
-
-Then select projected columns, export matching records, or open the schema in
-the IntelliSense-enabled query editor.
-
-Chosen files are processed in the page's memory without uploading their
-contents. Leading-zero identifiers stay text by default, and invalid typed
-values produce explicit errors.
-
-**The business use:** find out whether Kiara helps with a real export from your
-own workflow, not just someone else's sample.
-
-## Real data, with its limitations visible
-
-The retail examples share **3,788 genuine product codes**, derived from all
-**541,909 UCI Online Retail transactions**.
-
-The source is from 2010-2011. Prices are historical observed GBP bounds, not live
-offers. Units sold are not inventory, and observed countries are not shipping
-promises.
-
-The compatibility fixtures are deliberately small and fictional. They do not
-claim that real vendors support those capabilities.
-
-Those boundaries make the examples more useful, not less.
-
-The repository's **100 tests pass**, with **100% line, branch, and function
-coverage for the new business engine and import helpers**. Browser interactions
-and the real worker are checked separately; that is not a blanket claim of
-complete UI coverage or production readiness.
-
-## Start with the feature you need to build
-
-Kiara is not being positioned here as a replacement for every primary database,
-authorization system, or transactional backend.
-
-The examples show what it can contribute to applications that need useful
-querying over an appropriate prepared dataset.
-
-My suggested starting point:
-
-**Try the storefront to understand the experience. Try your own CSV to judge
-the relevance.**
-
-Explore and run the examples locally:
-[Kiara TypeScript examples](https://github.com/kapoor-labs/kiara-ts-examples).
-
-Install the library:
-[Kiara on npm](https://www.npmjs.com/package/@kapoorlabs/kiara-ts).
-
-Retail data attribution:
-[Chen, D. (2015), Online Retail, UCI Machine Learning Repository](https://doi.org/10.24432/C5BW33),
-licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+**Bring your most awkward filter combination.**
+Use **Bring your own CSV** or the guided queries in the
+[KiaraDB playground](https://github.com/kapoor-labs/kiara-ts-examples) to see how
+much can be expressed as conditions instead of custom filtering code.
