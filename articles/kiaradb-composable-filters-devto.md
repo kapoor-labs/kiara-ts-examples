@@ -1,7 +1,7 @@
-# Your Filter UI Has 10 Fields. That's 1,023 Possible Queries.
+# 10 Indexes, 1,023 Filter Combinations: Build the Numbered-Tree Trick in JavaScript
 
-Every field you add to a filter panel doubles the combinations users can pick. You can't build an index for each one, and scanning every record slows down as data grows.
-This tutorial shows the alternative I use: index each field once, then combine them at query time with a numbered tree. You'll even build the core trick yourself.
+Every field you add to a filter panel doubles the combinations users can pick. If your fast path is an exact key lookup, that means one key per combination. Databases avoid this by combining per-field indexes at query time.
+This tutorial shows how to do that in-process with a numbered tree, and you'll build the core trick yourself.
 
 *Disclosure: This article was drafted with AI assistance.*
 
@@ -14,35 +14,51 @@ This tutorial shows the alternative I use: index each field once, then combine t
 I first hit this problem at a global travel company, and again at a global
 e-commerce company. Records carried many attributes, every new feature asked
 for a different combination of them, and answers had to fit inside a
-user-facing request. The data changed rarely; the questions changed constantly.
+user-facing request. Both times, the fast path was an in-memory key-value
+lookup: superb when you know the exact key, awkward when the key is whatever
+combination a user just picked.
 
-## The math: every field doubles the work
+## How many indexes do 1,023 combinations need?
 
-With `n` independent filter fields, users can pick `2^n - 1` nonempty
-combinations:
+With `n` filter fields, users can pick `2^n - 1` nonempty combinations. How
+many indexes that implies depends on the kind of index:
 
-| Filter fields | Possible combinations |
-|---:|---:|
-| 5 | 31 |
-| 10 | 1,023 |
-| 20 | 1,048,575 |
+| Strategy | 10 fields | 20 fields | What limits it |
+|---|---:|---:|---|
+| Exact-key lookup (hash map, key-value cache) | 1,023 | 1,048,575 | A key on `(status, score)` can't answer `status` alone |
+| Composite ordered indexes, used by leading columns | 252 | 184,756 | An index on `(a, b, c)` serves `a`, `(a, b)`, and `(a, b, c)` |
+| One index per field, combined per query | 10 | 20 | Each query merges several index results |
 
-A dedicated lookup per combination is out. So is a full scan per request if
-the dataset is large and the budget is a few milliseconds.
+The middle row is a lower bound for equality filters. No two five-field
+combinations are nested, so each needs its own index. Real query planners
+loosen this by scanning non-leading columns or filtering after one index.
 
-## The obvious fix, and where it hurts
+So the explosion belongs to exact-key designs, not to databases in general.
+Relational databases take the last row. PostgreSQL, for example,
+[scans each relevant index, builds an in-memory bitmap of matching rows, and
+ANDs the bitmaps together](https://www.postgresql.org/docs/current/indexes-bitmap-scans.html),
+and its documentation recommends separate indexes plus index combination when
+queries mix columns.
 
-The standard answer is **one index per field**, then intersecting the matching
-ID sets. Ten fields, ten indexes. Done?
+## Why not just use the database, then?
 
-Mostly. The catch is that intersection cost follows the size of each matched
-list, not the size of the answer. If `status = active` matches 70% of a million
-records and `score >= 80` matches 50%, you build and compare hundreds of
-thousands of IDs to return a handful.
+Often you should. My hot path didn't fit, for three reasons:
 
-What I wanted was per-field indexes that can be combined **without building
-large ID sets**. That became **KiaraDB**, an in-memory engine for read-mostly
-data, available for Java and TypeScript.
+1. **Location.** A database is a separate service: a network round trip,
+   query planning, and result serialization on every request. The in-memory
+   lookups were there precisely to avoid that.
+2. **Combination cost.** Merging per-field results costs work proportional to
+   what each index matches, or to the rows a bitmap covers, even when the final
+   answer is tiny. Compression helps, but the work still follows the data.
+3. **Search features that live with the data.** Typeahead fires on every
+   keystroke. Stemming, typo correction, and search by value alone (`active
+   emea` with no field names) all reuse the same prepared in-memory structures.
+   Databases offer full-text search too, but each keystroke would still pay
+   the round trip.
+
+I wanted per-field indexes **inside the application process**, combined
+without building a per-row set for every condition. That became **KiaraDB**,
+an in-memory engine for read-mostly data, available for Java and TypeScript.
 
 ## The idea in two sentences
 
@@ -50,6 +66,11 @@ Store records as paths in a tree, so records that share leading values share
 nodes. Number every node during a depth-first walk, so "is this node underneath
 that one?" becomes two integer comparisons, which is all you need to combine
 conditions from different field indexes.
+
+The payoff: a condition on a field near the top of the tree can match many
+records through a handful of nodes, and nothing is collected per record until
+results are read. Deeper fields have more nodes, so schema order matters: put
+low-variety fields first and unique IDs last.
 
 ## Run it: one prepared store, many filter combinations
 
@@ -123,18 +144,60 @@ appears only when the tag rule switches from ALL to ANY. `c` is archived, `d`
 scores too low, `e`'s window starts after 20, and `f` carries the excluded
 `blocked` tag.
 
-Notice what did **not** happen between the two queries: no new index, no
-second `prepare()`, no reload. Details worth knowing:
+Between the two queries: no new index, no second `prepare()`, no reload.
+Details worth knowing:
 
 - Conditions combine with **AND**; ALL and ANY apply to the tag values only.
 - `BETWEEN` includes both bounds, and the window check asks whether a stored
   range contains the point `20`.
-- Fields become tree levels in schema order. Put low-variety fields first and
-  unique IDs last, so early levels share more nodes.
-- `ignoreIndex` keeps `id` out of filtering while projections still return it.
 - `NATIVE` keeps decimals such as `85.5` intact; the default profile mirrors
   the Java library's integer keys.
 
+## Beyond filters: words, typos, and bare values
+
+The same prepared data serves the search-box features from reason 3.
+Append this to `composable-search.mjs`:
+
+```javascript
+import { DictionaryTrie, KeywordSearch, QueryInterpreter } from "@kapoorlabs/kiara-ts";
+
+const catalog = new Store(defineSchema([
+  textField("status"),
+  textField("region"),
+  textField("title", { stemmedIndex: true }),
+  textField("sku", { ignoreIndex: true }),
+]), { normalizationProfile: NormalizationProfile.NATIVE });
+catalog.loadRows([
+  { status: "active", region: "emea", title: "Wireless Lighting Kit", sku: "k1" },
+  { status: "active", region: "amer", title: "Wireless Light Strip", sku: "k2" },
+  { status: "archived", region: "emea", title: "Wired Desk Lamp", sku: "k3" },
+]);
+catalog.prepare();
+
+const words = new DictionaryTrie();
+for (const row of catalog.queryAll()) words.addText(row.title);
+const keywords = new KeywordSearch(catalog);
+const skus = (found) => found.map((row) => row.sku);
+const typo = keywords.bestMatch("wirelss kit", { fields: ["title"] });
+
+console.log(JSON.stringify({
+  typeahead: words.predict("wir", 3),
+  stemmed: skus(keywords.bestMatch("lights", { fields: ["title"] }).results),
+  typo: skus(typo.results),
+  corrected: typo.correctedKeywords,
+  byValue: skus(new QueryInterpreter(catalog).search("active emea")),
+}));
+```
+
+```json
+{"typeahead":["wired","wireless"],"stemmed":["k1","k2"],"typo":["k1"],"corrected":{"wirelss":"wireless"},"byValue":["k1"]}
+```
+
+`wir` completes from a word trie. `lights` matches "Lighting" and "Light"
+through English stemming. `wirelss` is one edit from `wireless`, and the
+response reports the correction so a UI can show it. `active emea` names no
+fields: the interpreter finds which field holds each value and turns them into
+two equality conditions. Ambiguous values are reported, not guessed.
 ## Build the core trick yourself
 
 The algorithm comes from my 2020 paper,
@@ -220,13 +283,12 @@ instead of in a list of IDs. The cancellation index returned two nodes, and
 binary search found that only `[2, 3]` sits inside `[1, 6]`. Rome's branch was
 never read, and nothing was built for "city + cancellation."
 
-The real engine generalizes this. Either list can be the shorter one, numeric
-fields use sorted keys with binary-searched bounds, stored ranges use interval
-trees, and limited queries stop early in source order.
+The real engine also lets either list be the shorter one, binary-searches
+numeric bounds, uses interval trees for stored ranges, and stops early for limits.
 
 ## Does it beat intersecting ID sets?
 
-I can compare both strategies within one library. An earlier TypeScript engine
+An earlier TypeScript engine
 kept one index per field but merged results as ID sets, rechecked candidates,
 and scanned numeric and range entries linearly. The current tree engine ships
 in [kiara-ts 1.2.0](https://github.com/kapoorlabs/kiara-ts/releases/tag/v1.2.0),
@@ -241,18 +303,15 @@ engine, median p95:
 | Two fields combined, 2 results | 21.3 ms | 0.032 ms |
 | Exclusion, first 100 results | 36.6 ms | 8.8 ms |
 | Every record returned | 90.3 ms | 39.0 ms |
-| Keyword search, warm cache | 490.5 ms | 27.3 ms |
 
 Selective queries dropped far below a millisecond; queries returning many
 records improved less because those records still have to be assembled.
-Prepared memory was about 14% lower than the ID-set engine; after warming the
-keyword caches, it was about 7% higher. [The benchmark report](https://github.com/kapoorlabs/kiara-ts/blob/v1.2.0/docs/search-execution.md)
+Prepared memory was about 14% lower than the ID-set engine. [The benchmark report](https://github.com/kapoorlabs/kiara-ts/blob/v1.2.0/docs/search-execution.md)
 has the method and raw runs.
 
-These numbers compare two versions of one library, not every intersection
-strategy. To evaluate it yourself, measure preparation separately from
-queries, include broad queries alongside selective ones, check memory while
-swapping snapshots, and verify results against a trusted baseline.
+These numbers compare two versions of one library. The ID-set engine used
+JavaScript `Set`s, not compressed bitmaps, and neither was compared with a
+database query planner.
 
 ## When to reach for it
 
@@ -261,8 +320,8 @@ and users combine them **unpredictably**: catalogs, inventories, reference
 data, and layered configuration.
 
 Skip it for durable storage, transactions, or thousands of writes per second.
-Updates mean preparing a replacement snapshot and swapping it in. For a small
-list, the plain `filter` from the example may be all you need.
+Updates mean preparing a replacement snapshot and swapping it in. If your
+database already answers fast enough, or the list is small, keep what you have.
 
 ## Try it
 

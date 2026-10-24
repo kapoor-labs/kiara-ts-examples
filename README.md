@@ -106,10 +106,10 @@ Publication-ready roundup articles:
 - [LinkedIn: New Filter Combination? You Shouldn't Need a New Index.](./articles/seven-business-features-with-kiara-linkedin.md)
 
 HackerNoon article:
-- [Your Data Has 100 Attributes. How Many Indexes Do You Need?](./articles/kiaradb-local-search-hackernoon.md)
+- [Key-Value Lookups Break Down at 100 Attributes. Here's What I Built Instead.](./articles/kiaradb-local-search-hackernoon.md)
 
 DEV-oriented tutorial draft (review platform rules before publishing):
-- [Your Filter UI Has 10 Fields. That's 1,023 Possible Queries.](./articles/kiaradb-composable-filters-devto.md)
+- [10 Indexes, 1,023 Filter Combinations: Build the Numbered-Tree Trick in JavaScript](./articles/kiaradb-composable-filters-devto.md)
 
 Campaign materials:
 - [Evidence-backed capability inventory](./articles/campaign/capability-inventory.md)

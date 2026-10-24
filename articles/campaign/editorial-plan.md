@@ -38,7 +38,7 @@ demo; the new article itself must remain domain-neutral.
 | A4 | [Medium interpreter](../filterless-parts-finder-medium.md): **500ms or 0.5s? Make Equivalent Queries Return the Same Results.** | Show two inputs returning identical records, then expose an ambiguous duration | Unit metadata, numeric ranges, strict interpretation, editable source spans | 500-700 words |
 | A5 | [Text search](../airport-typeahead-with-kiara-typescript.md): **Fix the Typo, Keep the Filter: Better Text Search with KiaraDB** | A misspelling can recover while an exact status/score filter still excludes rows | Prefix completion vs record retrieval; typo/stemming; best/minimum scores; metadata | 500-700 words |
 | A6 | [Rules](../runtime-config-with-kiara-typescript.md): **Which Rule Won? Query, Explain, and Refresh Configuration with KiaraDB** | Find candidate rules, expose a tie, and keep the last good snapshot after rejection | Wildcards + application ranking, projections, replacement lifecycle, ownership boundary | 500-750 words |
-| A7 | [HackerNoon](../kiaradb-local-search-hackernoon.md): **Your Data Has 100 Attributes. How Many Indexes Do You Need?** | Work backward from the problem: many attributes, unpredictable combinations, exploding per-combination lookups, and costly ID-set intersection | Author's travel/e-commerce origin story, verified Java and TypeScript snippets before a paper-backed algorithm walkthrough, same-library before/after measurements; KiaraDB absent from title and opening | 1,000-1,300 prose words, plus snippets |
+| A7 | [HackerNoon](../kiaradb-local-search-hackernoon.md): **Key-Value Lookups Break Down at 100 Attributes. Here's What I Built Instead.** | Work backward from the problem: many attributes, unpredictable combinations, exploding per-combination lookups, and costly ID-set intersection | Author's travel/e-commerce origin story, verified Java and TypeScript snippets before a paper-backed algorithm walkthrough, same-library before/after measurements; KiaraDB absent from title and opening | 1,000-1,300 prose words, plus snippets |
 
 ## Capability allocation
 
@@ -86,8 +86,12 @@ concise explanation. The inventory retains details too specialized for a headlin
   not as evidence for every current TS feature.
 - HackerNoon and DEV may show sourced TS measurements, labeled with version,
   workload size, p95 methodology, and trade-offs, using different benchmark
-  rows so the pieces are not duplicates. Neither names other database
-  products. Do not turn synthetic results into universal speed guarantees.
+  rows so the pieces are not duplicates. Neither makes speed comparisons with
+  other databases. Both cite PostgreSQL's documented index combination only to
+  explain that per-field indexing is the standard database answer; HackerNoon
+  keeps the product name out of its text. Scope any `2^n - 1` index claim to
+  exact-key lookup designs.
+  Do not turn synthetic results into universal speed guarantees.
 - Keep one useful CTA per piece. Do not repeat installation links after every
   section, bury benefits under disclaimers, or publish unsupported superlatives.
 - Author must confirm actual affiliation and comply with AI disclosure rules.

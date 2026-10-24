@@ -52,16 +52,17 @@ for (const file of articles) {
     const images = [...article.matchAll(/!\[([^\]]+)\]\((\.\/images\/[^)]+\.png)\)/g)];
     const image = images[0];
     assert.ok(image, "Every campaign article needs an accessible PNG cover.");
-    const opening = article.slice(article.indexOf("\n") + 1, image.index).trim();
+    const story = article.slice(article.search(/^# /m));
+    const opening = story.slice(story.indexOf("\n") + 1, story.indexOf(image[0])).trim();
     if (file.includes("hackernoon") || file.includes("devto")) {
       assert.doesNotMatch(`${title}\n${opening}`, /KiaraDB/, "Lead with the problem, not the product.");
     } else {
       assert.ok(opening.includes("KiaraDB"), "Explain the mechanism before the image.");
     }
     assert.ok(opening.split(/\s+/).length <= 70, "The opening must earn attention quickly.");
-    assert.ok(article.split("\n").slice(0, 10).join("\n").includes(opening));
-    const proseWords = article.replace(/```[\s\S]*?```/g, "").trim().split(/\s+/).length;
-    const limit = file.includes("linkedin") ? 420 : file.includes("hackernoon") ? 1300 : 1050;
+    assert.ok(story.split("\n").slice(0, 10).join("\n").includes(opening));
+    const proseWords = story.replace(/```[\s\S]*?```/g, "").trim().split(/\s+/).length;
+    const limit = file.includes("linkedin") ? 420 : file.includes("hackernoon") || file.includes("devto") ? 1300 : 1050;
     assert.ok(proseWords <= limit, "Keep the article concise.");
 
     for (const graphic of images) {
@@ -81,16 +82,48 @@ test("DEV tutorial works backward from the filter problem to a buildable algorit
   const article = readFileSync(resolve(articlesDirectory, "kiaradb-composable-filters-devto.md"), "utf8");
   const order = [
     "## Same wall, two companies",
-    "## The math: every field doubles the work",
-    "## The obvious fix, and where it hurts",
+    "## How many indexes do 1,023 combinations need?",
+    "## Why not just use the database, then?",
     "## The idea in two sentences",
     "## Run it: one prepared store, many filter combinations",
+    "## Beyond filters: words, typos, and bare values",
     "## Build the core trick yourself",
     "## Does it beat intersecting ID sets?",
     "## When to reach for it",
   ].map((heading) => article.indexOf(heading));
   assert.ok(order.every((position, i) => position > 0 && (i === 0 || position > order[i - 1])));
-  assert.doesNotMatch(article, /\b(Redis|PostgreSQL)\b/i);
+  assert.match(article, /for three reasons:/);
+  assert.match(article, /3\. \*\*Search features that live with the data\.\*\*/);
+  assert.match(article, /Databases offer full-text search too/, "Do not imply databases lack text search.");
+  assert.match(article, /\{"typeahead":\["wired","wireless"\],"stemmed":\["k1","k2"\],"typo":\["k1"\],"corrected":\{"wirelss":"wireless"\},"byValue":\["k1"\]\}/);
+  assert.doesNotMatch(article, /\bRedis\b/i);
+  assert.match(article, /\(https:\/\/www\.postgresql\.org\/docs\/current\/indexes-bitmap-scans\.html\)/);
+  assert.match(article, /exact key lookup/, "Scope the explosion to exact-key designs.");
+  assert.match(article, /not compressed bitmaps/, "Do not overstate the benchmark baseline.");
+  const binomial = (n: number, k: number) => {
+    let result = 1;
+    for (let i = 1; i <= k; i++) result = (result * (n - k + i)) / i;
+    return result;
+  };
+  // Prefix-only composite indexes: a symmetric chain decomposition covers every subset with C(n, n/2) chains.
+  const prefixIndexes = (n: number) => {
+    let chains: number[][][] = [[[]]];
+    for (let field = 0; field < n; field++) {
+      chains = chains.flatMap((chain) => {
+        const extended = [...chain, [...chain[chain.length - 1], field]];
+        return chain.length > 1 ? [extended, chain.slice(0, -1).map((set) => [...set, field])] : [extended];
+      });
+    }
+    const covered = new Set(chains.flat().filter((set) => set.length).map((set) => set.join(",")));
+    assert.equal(covered.size, 2 ** n - 1);
+    return chains.length;
+  };
+  assert.equal(prefixIndexes(10), binomial(10, 5));
+  assert.equal(binomial(10, 5), 252);
+  assert.equal(binomial(20, 10), 184_756);
+  for (const row of ["| 1,023 | 1,048,575 |", "| 252 | 184,756 |", "| 10 | 20 |"]) {
+    assert.ok(article.includes(row), `Index-strategy table row: ${row}`);
+  }
   assert.match(article, /global\s+travel\s+company/);
   assert.match(article, /global\s+e-commerce\s+company/);
   assert.match(article, /\*Disclosure: This article was drafted with AI assistance\.\*/);
@@ -106,21 +139,55 @@ test("DEV tutorial works backward from the filter problem to a buildable algorit
   assert.equal(2 ** 5 - 1, 31);
 });
 
-test("HackerNoon works backward from the indexing problem to the algorithm and code", () => {
+test("HackerNoon Story Settings fields fit the editor's guidance", () => {
   const article = readFileSync(resolve(articlesDirectory, "kiaradb-local-search-hackernoon.md"), "utf8");
+  const title = article.search(/^# /m);
+  const section = (heading: string) => {
+    const start = article.indexOf(`## ${heading}\n`) >= 0 ? article.indexOf(`## ${heading}\n`) : article.indexOf(`## ${heading}\r\n`);
+    assert.ok(start >= 0 && start < title, `${heading} must precede the story title.`);
+    const end = article.slice(start + 3).search(/^(## |---)/m) + start + 3;
+    return article.slice(start, end).split(/\r?\n/).slice(1)
+      .filter((line) => line.trim() && !line.startsWith("*HackerNoon Story Settings")).join(" ").trim();
+  };
+  const meta = section("Meta description");
+  assert.ok(meta.length >= 150 && meta.length <= 160, `Meta description is ${meta.length} characters.`);
+  const tldr = section("TL;DR");
+  assert.ok(tldr.length >= 300 && tldr.length <= 500, `TL;DR is ${tldr.length} characters.`);
+  const tags = [...section("Story Tags").matchAll(/`([a-z0-9-]+)`/g)].map((match) => match[1]);
+  assert.deepEqual(tags, [
+    "database", "data-structures", "algorithms", "system-design",
+    "software-architecture", "java", "typescript", "performance",
+  ]);
+  const indicators = section("Emoji Credibility Indicator");
+  for (const required of ["Vested Interest", "AI-assisted", "Academic Research Paper"]) {
+    assert.ok(indicators.includes(`**${required}**`), `Select ${required}.`);
+  }
+});
+
+test("HackerNoon works backward from the indexing problem to the algorithm and code", () => {
+  const article = readFileSync(resolve(articlesDirectory, "kiaradb-local-search-hackernoon.md"), "utf8")
+    .replace(/^[\s\S]*?(?=^# )/m, "");
   const order = [
     "## I kept hitting the same wall",
     "## Why one lookup per combination doesn't scale",
-    "## The obvious fix, and why it still hurts",
+    "## What databases do instead",
     "## The idea in two sentences",
     "## In Java",
     "## In TypeScript",
     "## Under the hood: the algorithm",
-    "## Is it actually faster than intersecting indexes?",
+    "## Is it faster than intersecting ID sets?",
     "## Where it fits, and where it doesn't",
   ].map((heading) => article.indexOf(heading));
   assert.ok(order.every((position, i) => position > 0 && (i === 0 || position > order[i - 1])));
   assert.doesNotMatch(article, /\bRedis\b/i);
+  for (const row of ["| 10 | 1,023 | 252 |", "| 20 | 1,048,575 | 184,756 |", "| 30 | 1,073,741,823 | 155,117,520 |"]) {
+    assert.ok(article.includes(row), `Exact-key versus composite-index row: ${row}`);
+  }
+  assert.match(article, /\(https:\/\/www\.postgresql\.org\/docs\/current\/indexes-bitmap-scans\.html\)/);
+  assert.match(article, /right answer/, "Concede that per-attribute indexes suit most applications.");
+  assert.match(article, /not compressed bitmaps/, "Do not overstate the benchmark baseline.");
+  assert.doesNotMatch(article, /a million IDs|hundreds of thousands of record IDs/);
+  assert.equal((article.match(/400,000/g) ?? []).length >= 2, true);
   assert.match(article, /global travel company/);
   assert.match(article, /global e-commerce company/);
   assert.ok(article.indexOf("KiaraDB") > order[2], "Introduce KiaraDB after the problem.");

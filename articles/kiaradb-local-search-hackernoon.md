@@ -1,9 +1,38 @@
-# Your Data Has 100 Attributes. How Many Indexes Do You Need?
+## Meta description
+
+*HackerNoon Story Settings, "Description for Internet Distribution." Not part of the story body.*
+
+A separate key for every attribute combination is impossible past a few fields. See how a numbered trie combines per-field indexes, in Java and TypeScript.
+
+## TL;DR
+
+*HackerNoon Story Settings, "TL;DR." Not part of the story body.*
+
+Records with many attributes can be filtered in 2^n - 1 combinations, far too many for one key-value lookup each. Databases instead combine per-attribute indexes per query, but out of process and at a cost that follows the matched rows. KiaraDB stores records as paths in a trie, numbers each node with a depth-first walk, and combines per-attribute indexes in-process by range containment. Java and TypeScript examples, plus same-library benchmarks.
+
+## Story Tags
+
+*HackerNoon Story Settings, "Story Tags" (8 of 8). Not part of the story body. Enter the primary tag first.*
+
+`database`, `data-structures`, `algorithms`, `system-design`, `software-architecture`, `java`, `typescript`, `performance`
+
+## Emoji Credibility Indicator
+
+*HackerNoon Story Settings, "Emoji Credibility Indicator." Not part of the story body.*
+
+- **Vested Interest** (required): the author created and maintains KiaraDB.
+- **AI-assisted** (required): portions of this draft were generated with AI assistance.
+- **Academic Research Paper**: the story cites the author's peer-reviewed 2020 paper in the Journal of Algorithms and Computation.
+- **Code License** (optional): the Java library is Apache-2.0 and the TypeScript library is MIT; choose the license that applies to the in-story snippets.
+
+---
+
+# Key-Value Lookups Break Down at 100 Attributes. Here's What I Built Instead.
 
 Real records rarely have five fields. Products, trips, and configurations can carry hundreds of attributes, and every user or service filters by a different handful.
 A key-value lookup is fast when you already know the key. But what is the key when it's whatever combination of attributes someone picked a moment ago?
 
-![One lookup per attribute combination grows from 1,023 for 10 attributes to about 1.27 times 10 to the 30th for 100. One index per attribute grows linearly.](./images/hackernoon-index-explosion.png)
+![Exact-key lookups per attribute combination grow exponentially, from 1,023 for 10 attributes; one index per attribute grows linearly.](./images/hackernoon-index-explosion.png)
 
 ## I kept hitting the same wall
 
@@ -14,12 +43,11 @@ global e-commerce company. Different domains, identical shape:
 - **Unpredictable combinations.** One request might filter by destination,
   rating, and price; the next by brand and cancellation policy. Every new
   feature invented another combination.
-- **A tight budget.** The answer had to arrive inside a user-facing request,
-  so a network hop to a separate search cluster was a cost of its own.
+- **A tight budget.** The answer had to arrive inside a user-facing request.
 - **Data that changed rarely; questions that changed constantly.**
 
-That last point matters. When data is read far more often than written, you
-can afford to organize it once and reuse that work on every query.
+When data is read far more often than written, you can organize it once and
+reuse that work on every query.
 
 ## Why one lookup per combination doesn't scale
 
@@ -28,41 +56,44 @@ A key-value store answers `get(key)` in roughly constant time. To search by
 you add a lookup keyed by both. If every combination should be a direct
 lookup, `n` attributes produce `2^n - 1` of them:
 
-| Searchable attributes | Lookups needed |
-|---:|---:|
-| 10 | 1,023 |
-| 20 | 1,048,575 |
-| 30 | 1,073,741,823 |
-| 100 | about 1.27 × 10^30 |
+| Searchable attributes | Exact-key lookups | Composite indexes, at minimum |
+|---:|---:|---:|
+| 10 | 1,023 | 252 |
+| 20 | 1,048,575 | 184,756 |
+| 30 | 1,073,741,823 | 155,117,520 |
+| 100 | about 1.27 × 10^30 | about 1.01 × 10^29 |
 
-Even if queries never combine more than three of 100 attributes, that is
-**166,750** lookups, each storing references to the records again and each
-rebuilt whenever data changes. And each must exist **before** anyone asks.
+Even capping queries at three of 100 attributes leaves **166,750** lookups,
+each rebuilt when data changes and needed **before** anyone asks.
 
-Ordered composite indexes soften this, but they work best when a query
-matches their leading columns. An index on `(city, stars, price)` does not
-naturally serve a query on `price` alone.
+Ordered composite indexes help: one index on `(city, stars, price)` also
+serves `city` and `(city, stars)`. Covering every equality combination still
+takes the last column above, because no two half-size combinations nest.
 
-## The obvious fix, and why it still hurts
+## What databases do instead
 
-You already know the standard answer: build **one index per attribute** and
-intersect the results. That is `n` indexes instead of `2^n`.
+Relational databases don't build an index per combination. They keep **one
+index per attribute** and combine them per query, for example by turning each index's matches into an
+[in-memory bitmap and ANDing the bitmaps](https://www.postgresql.org/docs/current/indexes-bitmap-scans.html).
+That is `n` indexes instead of `2^n`, and for most applications it is the
+right answer. It didn't fit my hot path, for two reasons:
 
-The catch is that intersection cost follows the size of each matched list,
-not the size of the answer. Imagine a million hotels, `city = Paris` matching
-40% of them and `stars >= 4` matching 60%. To return a handful of results, you
-still materialize and compare hundreds of thousands of record IDs.
+- **Location.** A database is a separate service: a network round trip, query
+  planning, and serialization on every request.
+- **Combination cost.** If `city = Paris` matches 40% of a million hotels, that
+  index contributes 400,000 matches to the merge even when the answer is three
+  hotels. Compression helps; the work still follows the data.
 
-I wanted per-attribute indexes that could be **combined without building
-large ID sets**: any combination, chosen at query time, answered in memory.
+I wanted per-attribute indexes **inside the application process**, combined
+without a per-record set for every condition.
 
 That search became **KiaraDB**, first in Java and later in TypeScript.
 
 ## The idea in two sentences
 
 KiaraDB stores records as paths in a tree, so records that share values share
-nodes: near the top of the tree, all Paris hotels sit under **one** Paris
-node, not a list of a million IDs. Every node also carries a pair of numbers
+nodes: near the top of the tree, all 400,000 Paris hotels sit under **one**
+Paris node instead of 400,000 entries. Every node also carries a pair of numbers
 that tells you, with two quick comparisons, whether one node sits underneath
 another. That is all you need to combine conditions.
 
@@ -217,9 +248,9 @@ query's cost tracks how many nodes its conditions match, not how many
 combinations are possible. Numeric bands and stored ranges use the same idea,
 with binary search over sorted keys and interval trees.
 
-## Is it actually faster than intersecting indexes?
+## Is it faster than intersecting ID sets?
 
-I can answer that within one library. An earlier TypeScript engine kept one
+An earlier TypeScript engine kept one
 index per attribute, but merged results as record-ID sets, rechecked the
 candidates, and scanned numeric and range entries linearly. The current engine,
 released as kiara-ts 1.2.0, uses the tree and its numbers.
@@ -238,8 +269,9 @@ less, because the matching records still have to be assembled. Preparing the
 data took 0.87 seconds instead of 1.31, with about 14% less memory before
 text-search caches.
 
-This compares two versions of one library on synthetic data, not every
-possible index implementation or your production workload.
+This compares two versions of one library on synthetic data. The ID-set engine
+used JavaScript `Set`s, not compressed bitmaps, and neither was compared with a
+database query planner or your production workload.
 [The full benchmark report](https://github.com/kapoorlabs/kiara-ts/blob/v1.2.0/docs/search-execution.md)
 includes the method and raw results.
 

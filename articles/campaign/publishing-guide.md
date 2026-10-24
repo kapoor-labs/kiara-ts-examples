@@ -59,7 +59,9 @@ a Java-specific pitch deserves a genuinely tested Java walkthrough first.
   link per 500 words**, not the often-repeated 300-word advice. It also calls for
   reputable external sources and relevant internal HackerNoon links.
 - The flagship links the Java and TypeScript repositories as its call to
-  action, and cites the 2020 paper. It names no other database products. Check
+  action, and cites the 2020 paper and PostgreSQL's documentation on bitmap
+  index combination. Its text names no other database product and makes no
+  speed comparison. Check
   whether the editor counts both repository links as promotional links.
   Review source diversity and choose genuinely relevant references;
   do not add unrelated citations to satisfy a quota.
@@ -85,7 +87,7 @@ will not resolve after pasting Markdown into another site's editor.
 | A4 | [500ms or 0.5s? Make Equivalent Queries Return the Same Results.](../filterless-parts-finder-medium.md) | Hashnode / Medium | [PNG](../images/query-interpretation-medium.png) / [SVG](../images/query-interpretation-medium.svg) |
 | A5 | [Fix the Typo, Keep the Filter: Better Text Search with KiaraDB](../airport-typeahead-with-kiara-typescript.md) | Hashnode / suitable Medium publication | [PNG](../images/typeahead.png) / [SVG](../images/typeahead.svg) |
 | A6 | [Which Rule Won? Query, Explain, and Refresh Configuration with KiaraDB](../runtime-config-with-kiara-typescript.md) | Owned blog / Hashnode | [PNG](../images/runtime-config.png) / [SVG](../images/runtime-config.svg) |
-| A7 | [Your Data Has 100 Attributes. How Many Indexes Do You Need?](../kiaradb-local-search-hackernoon.md) | Owned blog / HackerNoon editorial submission | [PNG](../images/hackernoon-index-explosion.png) / [SVG](../images/hackernoon-index-explosion.svg) |
+| A7 | [Key-Value Lookups Break Down at 100 Attributes. Here's What I Built Instead.](../kiaradb-local-search-hackernoon.md) | Owned blog / HackerNoon editorial submission | [PNG](../images/hackernoon-index-explosion.png) / [SVG](../images/hackernoon-index-explosion.svg) |
 
 - [Visual gallery](./graphics.html)
 - [All covers and the engine explainer on one contact sheet](../images/campaign-contact-sheet.png),
@@ -97,15 +99,32 @@ will not resolve after pasting Markdown into another site's editor.
 
 ## DEV-oriented educational draft
 
-[Your Filter UI Has 10 Fields. That's 1,023 Possible Queries.](../kiaradb-composable-filters-devto.md)
-is a separate tutorial, not a copy of the HackerNoon story. It follows the same
-problem-first arc (the `2^n - 1` growth, the author's travel and e-commerce
-experience, the per-field intersection objection, then KiaraDB), but its core
-is hands-on: an advanced-filter example checked against a plain JavaScript
-filter, and a 40-line plain JavaScript implementation of the paper's numbered
-trie whose printed numbers match the reused DFS-bounds diagram. Its benchmark
-rows differ from HackerNoon's, and it names no other database products.
+[10 Indexes, 1,023 Filter Combinations: Build the Numbered-Tree Trick in JavaScript](../kiaradb-composable-filters-devto.md)
+is a separate tutorial, not a copy of the HackerNoon story. It follows a
+similar problem-first arc, but its core is hands-on: an advanced-filter example
+checked against a plain JavaScript filter, and a 40-line plain JavaScript
+implementation of the paper's numbered trie whose printed numbers match the
+reused DFS-bounds diagram. Its benchmark rows differ from HackerNoon's.
 It omits the campaign CTA and includes explicit AI disclosures.
+
+Technical-accuracy revision: the article no longer implies that 10 fields need
+1,023 indexes in general. That holds only for exact-key lookups (hash maps,
+key-value caches). Its table compares three strategies for 10 and 20 fields:
+exact keys (1,023 / 1,048,575), prefix-only composite ordered indexes with
+equality filters (at least 252 / 184,756, the size of the middle layer of
+field subsets, which no two indexes can share), and per-field indexes combined
+per query (10 / 20). It cites
+[PostgreSQL's bitmap index combination](https://www.postgresql.org/docs/current/indexes-bitmap-scans.html)
+as a factual example of the per-field approach, not as a performance comparison,
+and answers "why not just use the database?" with three reasons: in-process
+location, combination cost, and search features that live with the data
+(typeahead on every keystroke, stemming, typo correction, and search by value
+alone). It concedes that databases offer full-text search too; the argument is
+the per-keystroke round trip, not a missing feature. A runnable "Beyond
+filters" snippet demonstrates all four on one prepared store. The benchmark caveat states the earlier engine used
+JavaScript `Set`s, not compressed bitmaps, and was not compared with a planner.
+The article tests verify the 252 lower bound by constructing a covering
+decomposition for 10 fields.
 
 **It is not pre-approved for DEV.** The platform's published AI guidelines,
 rechecked on 2026-10-24, restrict promoting a business, program, or course.
@@ -148,24 +167,47 @@ Participate genuinely; do not manufacture testimonials, engagement, or comments.
 
 Working title:
 
-**Your Data Has 100 Attributes. How Many Indexes Do You Need?**
+**Key-Value Lookups Break Down at 100 Attributes. Here's What I Built Instead.**
 
-Alternative hooks for author review:
+The breakdown is specific to exact-key lookups, where every combination needs
+its own key. The title deliberately does not say databases need `2^n` indexes;
+relational databases combine per-attribute indexes, as the article explains.
 
-- **Search by Any Combination of Attributes Without an Index for Each One**
-- **The Index Explosion Nobody Warns You About**
-- **Ten Attributes, 1,023 Indexes: Why Combination Search Breaks Key-Value Lookups**
+Alternative hooks for author review, each consistent with the corrected body:
+
+- **100 Attributes, Any Combination, No Database Round Trip**
+- **Every New Filter Doubles Your Lookup Keys. Here's How I Stopped Adding Them.**
 - **I Hit the Same Search Problem at Two Global Companies. So I Built a Database.**
 
+Retired hooks, because they implied a combinatorial index count in general:
+"Your Data Has 100 Attributes. How Many Indexes Do You Need?", "The Index
+Explosion Nobody Warns You About", and "Ten Attributes, 1,023 Indexes."
+
 The article works backward from the problem: many attributes, unpredictable
-combinations, and the `2^n - 1` growth of per-combination lookups. It then
-addresses the experienced reader's first objection, "why not one index per
-attribute and intersect?", before introducing KiaraDB. The contrast is with
-lookup and intersection designs, not a named database product.
+combinations, and the `2^n - 1` growth of exact-key lookups. It then concedes
+what databases actually do, one index per attribute combined per query, and
+explains why that still did not fit an in-process hot path, before introducing
+KiaraDB.
 
-Reader-review fixes in this revision:
+Technical-accuracy revision (matching the DEV fix):
 
-- Added the per-attribute intersection objection and why ID-set size hurts.
+- The `2^n - 1` count is scoped to exact-key lookups. The table adds the
+  minimum number of prefix-only composite indexes for equality filters
+  (252 / 184,756 / 155,117,520 for 10 / 20 / 30 attributes).
+- "The obvious fix" became "What databases do instead," citing documented
+  bitmap index combination and calling it the right answer for most
+  applications. The reasons it did not fit are location and combination cost.
+- The overstated "materialize hundreds of thousands of record IDs" and the
+  inconsistent "a million IDs" were replaced with a consistent 400,000-match
+  example.
+- The benchmark heading and caveat now say the earlier engine used JavaScript
+  `Set`s, not compressed bitmaps, and was not compared with a query planner.
+- The meta description and TL;DR no longer claim indexing every combination is
+  impossible or that per-attribute intersection always builds huge ID sets.
+
+Reader-review fixes in the earlier revision:
+
+- Added the per-attribute index objection and the database alternative.
 - Added the in-process latency and read-mostly constraints behind the design.
 - Moved code before the algorithm, and explained the algorithm with a
   table-of-contents analogy and a hotel diagram matching the code.
@@ -178,11 +220,27 @@ The travel and e-commerce experience is **author-supplied**; employers remain
 unnamed by choice. Example queries in that section are framed as illustrative.
 Do not add unverified specifics, metrics, or production claims.
 
-Suggested meta description:
+Story Settings fields live at the top of the
+[HackerNoon draft](../kiaradb-local-search-hackernoon.md), above the title.
+Copy them into Story Settings, then paste the body starting from the H1:
 
-> Hundreds of attributes make an index per combination impossible, and
-> intersecting per-attribute indexes still builds huge ID sets. A trie with
-> numbered paths answers any combination, with Java and TypeScript examples.
+- **Meta description** ("Description for Internet Distribution"): 155
+  characters. HackerNoon's
+  [editors recommend 155-160](https://hackernoon.com/using-hackernoons-story-settings-to-your-advantage-tips-from-hackernoon-editors),
+  and it doubles as the social caption.
+- **TL;DR:** 450 characters, within the recommended 300-500. It appears in
+  HackerNoon newsletters beside the featured image.
+- **Story Tags:** all eight were checked against HackerNoon's tag data on
+  2026-10-24 (story counts: `database` 730, `data-structures` 173,
+  `algorithms` 553, `system-design` 251, `software-architecture` 1,353,
+  `java` 980, `typescript` 686, `performance` 440). Narrower tags such as
+  `in-memory-database` (2) and `database-indexing` (3) have little audience;
+  `trie` does not exist.
+- **Emoji Credibility Indicators:** select **Vested Interest** and
+  **AI-assisted**, both required for honest disclosure, plus **Academic
+  Research Paper** for the cited journal paper. **Code License** is optional.
+  Options are from HackerNoon's
+  [indicator list](https://help.hackernoon.com/emoji-credibility-indicators).
 
 The technical foundation is Anuj Kapoor's
 [Efficient Storage and Retrieval of In-Memory Static Data](https://journal.ut.ac.ir/article_76227_7508c12200be2eb3f9f16a97aac23a44.pdf),
@@ -191,11 +249,6 @@ Sections 2-4 support the trie, DFS-bound, pairwise reduction, and complexity
 explanation. Do not import the paper's cross-database comparisons or equate its
 analysis with the current TS benchmark. The inline schematic is original, not a
 copied paper figure.
-
-Suggested eight tags, subject to the editor's available tags:
-
-`databases`, `database-indexing`, `typescript`, `java`, `open-source`,
-`software-development`, `search`, `software-architecture`.
 
 The author should supply their real background and connection to the project.
 The article includes only the author-supplied travel and e-commerce background.

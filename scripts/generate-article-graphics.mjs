@@ -234,15 +234,15 @@ const artwork = [
   },
   {
     file: "hackernoon-index-explosion", accent: "#f6bd70", number: "09",
-    heading: ["Your data has 100 attributes.", "How many indexes do you need?"],
-    sub: "A direct lookup for every attribute combination grows as 2ⁿ − 1.",
+    heading: ["Key-value lookups break down", "at 100 attributes."],
+    sub: "A key per attribute combination grows as 2ⁿ − 1. An index per attribute grows linearly.",
     title: "Combination lookups explode while per-attribute indexes grow linearly",
     description: "Left: one lookup per attribute combination needs 1,023 lookups for 10 attributes, 1,048,575 for 20, 1,073,741,823 for 30, and about 1.27 times 10 to the 30th for 100. Right: one index per attribute needs 10, 20, 30, and 100.",
     footer: "Counts nonempty attribute subsets. Per-attribute indexes still use memory.",
     draw: () => {
       const rows = [["10", "1,023", "10"], ["20", "1,048,575", "20"], ["30", "1,073,741,823", "30"], ["100", "≈ 1.27 × 10³⁰", "100"]];
       return card(80, 330, 680, 390,
-        text(115, 378, "ONE LOOKUP PER COMBINATION", 23, "#f6bd70", 700, 610)
+        text(115, 378, "EXACT-KEY LOOKUPS, ONE PER COMBINATION", 23, "#f6bd70", 700, 610)
         + text(115, 425, "attributes", 22, palette.muted, 500, 160)
         + text(330, 425, "lookups", 22, palette.muted, 500, 380)
         + rows.map(([n, combos], i) => text(115, 487 + i * 62, n, 34, palette.ink, 600, 160)
@@ -258,7 +258,7 @@ const artwork = [
   },
   {
     file: "devto-filter-combinations", accent: "#7eb9ff", number: "10",
-    heading: ["Your filter UI has 10 fields.", "That's 1,023 possible queries."],
+    heading: ["10 indexes.", "1,023 filter combinations."],
     sub: "Index each field once. Combine the indexes at query time.",
     title: "Ten filter fields allow 1,023 combinations but need only ten per-field indexes",
     description: "A filter panel lists ten fields, with status, score, and tags selected. Users can pick 1,023 nonempty combinations of those fields, while the application maintains only ten per-field indexes.",
