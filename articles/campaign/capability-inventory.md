@@ -1,9 +1,11 @@
 # KiaraDB: evidence-backed capability inventory
 
-Audited 2026-10-24. This is the source of claims for the promotional campaign,
-not a claim that every capability is exclusive to KiaraDB.
+Audited and updated after the search optimization on 2026-10-24. This is the
+source of claims for the promotional campaign, not a claim that every capability
+is exclusive to KiaraDB. Original audit results below are retained as history;
+the optimized-engine evidence is recorded separately.
 
-## Audit scope and confidence
+## Original 1.1.0 audit scope and confidence
 
 - Read all 14 files in [src](../../src), all six [test files](../../tests),
   both [import scripts](../../scripts), and the HTML/build configuration.
@@ -11,7 +13,7 @@ not a claim that every capability is exclusive to KiaraDB.
   preparation/index construction, store lifecycle, and search execution.
 - Checked the [Java project's documentation](https://github.com/kapoorlabs/kiara)
   at revision `5f61c4761bd5ca391fa89dc98897a18f0d81e83f` for cross-language
-  claims. Java implementation tests were **not** run here.
+  claims. Java implementation tests were **not** run during that original audit.
 - Ran the repository's full test suite: **100 passed, 0 failed**.
   `npm run build` also passed, with Vite's existing large-chunk warning.
 - Test results establish the specified behaviors, not universal speed, complete
@@ -20,6 +22,41 @@ not a claim that every capability is exclusive to KiaraDB.
 **Evidence labels:** **Tested** = asserted by this repository's tests;
 **Inspected** = verified in the installed package's implementation/docs;
 **Java-doc** = documented by the Java project, not locally executed.
+**Optimized** = subsequent implementation and work-count evidence, not a claim
+of universal Java/TypeScript behavioral parity.
+
+## Optimized-engine follow-up
+
+The [1.2.0 GitHub release](https://github.com/kapoorlabs/kiara-ts/releases/tag/v1.2.0)
+includes the optimized engine. The
+[execution report](https://github.com/kapoorlabs/kiara-ts/blob/v1.2.0/docs/search-execution.md)
+and [raw measurements](https://github.com/kapoorlabs/kiara-ts/blob/v1.2.0/benchmarks/search-optimization-comparison.json)
+retain the development-candidate label **1.1.1-search.0**.
+
+- Structured queries now execute through per-field trie-node postings, DFS
+  ancestry joins, binary-search numeric bounds, and interval trees. Selective
+  queries materialize matching source rows rather than sweeping all records.
+- Snapshot-scoped token/stem postings and dictionaries are reused for keyword
+  search. Existing TypeScript ranking, correction scope, and source order remain.
+- Validation passed: **165 library tests, 453 live Java tests, nine cross-browser
+  worker checks, and 2,202 old/new TypeScript differential checks**. These are
+  separate evidence sets, not proof of identical Java and TypeScript results.
+- Downstream validation against the local candidate passed **116 tests** and the
+  production build, including the actual article snippets at that time.
+- Five isolated old/new process pairs at 10k and 100k records covered eight
+  query workloads. At 100k, broad-query p95 fell from 45.02 to 21.21 ms, and warm
+  keyword p95 from 490.54 to 27.34 ms, using the median per-run p95.
+- Prepared heap at 100k was about 14% lower before text caches, but retained
+  heap after warming keyword search was about 7% higher. Preparation and
+  snapshot coexistence were measured separately; process RSS high-water marks
+  do not establish an isolated preparation-heap peak.
+
+These synthetic comparisons are against TypeScript 1.1.0, **not Java or Redis**.
+The GitHub release notes report npm publication blocked. A direct public-registry
+check here failed its TLS handshake, so npm availability was not independently
+confirmed. Tutorials retain their 1.1.0 npm install pins and distinguish their
+candidate validation from registry availability. Recheck distribution before
+publication; do not advertise an unverified npm install command.
 
 ## The strongest campaign promise
 
@@ -42,7 +79,7 @@ are implementation choices, not the reader's primary reason to care.
 | C06 | Opt-out indexing, with ignored fields still returned/projected | Keep payload fields without allowing them in filters | Tested: ignored-field errors and retained projected links in [query tests](../../tests/query.test.ts); ignoring is not authorization or a promise of zero storage overhead |
 | C07 | Configurable normalization | Match case-insensitively and preserve decimals when explicitly using NATIVE mode | Tested: [query tests](../../tests/query.test.ts), [unit equivalence](../../tests/parts-finder.test.ts); inspected default JAVA numeric profile truncates fractions into long-like keys |
 | C08 | In-memory prepared-store lifecycle | Pay preparation cost once per snapshot and reuse a read-oriented store | Inspected: store loading/preparing/ready/failed states; tested in all engine modules; no durable storage or unrestricted post-prepare mutation |
-| C09 | Trie representation and diagnostic inspection | Inspect prepared structure and learn how shared paths represent repeated values | Tested: bounded trie serialization in [query tests](../../tests/query.test.ts); inspected TS builds a trie plus per-field indexes; Java-doc discusses prefix dedup and field order. Do not equate implementations or infer measured compression |
+| C09 | Execution trie and diagnostic inspection | Reuse shared paths for indexed queries and inspect the prepared structure | Optimized: DFS-bound node execution and selective materialization; Tested: bounded trie serialization in [query tests](../../tests/query.test.ts). Legacy inspector views are lazy. Shared architecture is not identical behavior or a universal compression ratio |
 | C10 | Zero runtime dependencies in the TS library | Embed the library without an additional runtime dependency graph | Inspected: installed package manifest. The playground separately depends on Monaco, Papa Parse, and Vite; the Java library is not covered by this claim |
 
 ### Architecture clarification for the flagship
@@ -51,12 +88,14 @@ Follow-up source inspection on 2026-10-24 confirmed Java's hash-based per-field
 inverted indexes in [Store.java](https://github.com/kapoorlabs/kiara/blob/develop/src/main/java/com/kapoorlabs/kiara/domain/Store.java)
 and specialized interval trees in [SearchableRange.java](https://github.com/kapoorlabs/kiara/blob/develop/src/main/java/com/kapoorlabs/kiara/domain/SearchableRange.java).
 The latter releases its temporary loading array after preparing the tree.
-This supplements C01/C09; Java tests were still not executed.
+This supplemented C01/C09 before the later live Java run documented above.
 
 "One index per field" describes the logical indexing unit, not a guarantee of
 one physical structure: auxiliary ordered keys, collection indexes, and trie
-data can coexist. TS 1.1.0 uses maps, sorted numeric entries, and range entries,
-not the same interval-tree implementation.
+data can coexist. TS 1.1.0 used maps, sorted numeric entries, and flat range
+entries. The optimized engine included in 1.2.0 adds production trie-node
+execution, bound searches, and interval trees; it is not a literal port of every
+Java algorithm, keyword behavior, or API.
 
 For 10 fields there are `2^10 - 1 = 1,023` nonempty subsets, of which 1,013
 contain multiple fields. This illustrates a hypothetical lookup-per-subset
@@ -121,9 +160,11 @@ not a verified cross-engine performance result.
    reduced manual index/query setup.
 3. No unmeasured promises about constant-time queries, dataset-independent speed,
    a fixed millisecond latency, compression ratios, or beating another database.
-   TS search explicitly intersects candidate sets and visits source row IDs.
-4. Do not claim shared Java/TypeScript internals, identical APIs, or universal
-   parity. TS `QueryInterpreter` is verified here; a Java equivalent is not.
+   Optimized TS combines trie-node candidates and materializes selected rows;
+   broad queries and overlapping intervals can still require substantial work.
+4. Distinguish shared structured-search architecture from identical internals,
+   APIs, or behavior. TS `QueryInterpreter` is verified here; a Java equivalent
+   is not. Keyword ranking and minimum-match remain explicitly TS-scoped.
 5. The interpreter covers scalar text/enum/number/boolean and string collections.
    Dates, longs, numeric collections, and stored ranges use structured APIs.
    No implicit OR, grouping, arbitrary prose, or general unit registry.
@@ -141,6 +182,11 @@ not a verified cross-engine performance result.
 
 ## Primary references
 
+- [Efficient Storage and Retrieval of In-Memory Static Data, Anuj Kapoor, 2020](https://journal.ut.ac.ir/article_76227_7508c12200be2eb3f9f16a97aac23a44.pdf):
+  sections 2-3 describe shared field-value tries, per-field inverted node indexes,
+  DFS entry/exit bounds, and binary reduction of compatible paths. The paper
+  explicitly connects that design to Java KiaraDB. It does not validate the
+  current TS keyword semantics, interval-tree implementation, or measurements.
 - [Java project](https://github.com/kapoorlabs/kiara)
 - [TypeScript project](https://github.com/kapoorlabs/kiara-ts)
 - [Published TypeScript 1.1.0 package](https://www.npmjs.com/package/@kapoorlabs/kiara-ts/v/1.1.0)

@@ -4,6 +4,28 @@ Policy research checked **2026-10-24**. Platform rules and editorial discretion
 can change. These are recommendations, not guarantees of acceptance or reach.
 No articles have been submitted or published by this task.
 
+## Package and performance status
+
+The [1.2.0 GitHub release](https://github.com/kapoorlabs/kiara-ts/releases/tag/v1.2.0)
+includes the optimized TypeScript engine, but its release notes report npm
+publication blocked. The public-registry check in this environment failed its
+TLS handshake; it did not independently establish availability.
+
+The drafts therefore keep their **1.1.0 npm installation instructions** and
+note that the same outputs passed on **1.1.1-search.0**, the candidate behind
+1.2.0. Before publishing, verify the actual distribution path; only update npm
+pins after the version is available and the snippets pass against that package.
+
+The DEV and HackerNoon performance tables come from the
+[recorded candidate comparison](https://github.com/kapoorlabs/kiara-ts/blob/v1.2.0/docs/search-execution.md#measured-comparison-with-typescript-110).
+It is synthetic, old/new TypeScript evidence, not a fresh 1.2.0 benchmark or a
+cross-product comparison. Preserve the p95, warm-cache, and memory qualifications.
+HackerNoon compares the earlier per-attribute ID-set engine with the tree engine
+on the same synthetic four-attribute, 100,000-record dataset. It is framed as
+evidence that tree-based combination beats that ID-set implementation, not every
+possible intersection strategy. Java was not benchmarked; do not imply that a
+hundred-attribute workload was measured.
+
 ## Recommended channel order
 
 **Start with an owned blog, LinkedIn, and a substantive Hashnode series.**
@@ -36,10 +58,11 @@ a Java-specific pitch deserves a genuinely tested Java walkthrough first.
 - HackerNoon's inspected backlink guidance says **one promotional brand/personal
   link per 500 words**, not the often-repeated 300-word advice. It also calls for
   reputable external sources and relevant internal HackerNoon links.
-- The flagship now has one project CTA and contextual PostgreSQL references,
-  rather than only project links. Before submitting, select a genuinely relevant
-  HackerNoon reference with the editor; do not add unrelated citations to satisfy
-  a quota.
+- The flagship links the Java and TypeScript repositories as its call to
+  action, and cites the 2020 paper. It names no other database products. Check
+  whether the editor counts both repository links as promotional links.
+  Review source diversity and choose genuinely relevant references;
+  do not add unrelated citations to satisfy a quota.
 - HackerNoon distinguishes personal-blog canonical links from brand accounts
   and does not generally allow canonical links to other blogging/social platforms.
   Do not assume a DEV/Medium-first cross-post can retain its preferred canonical URL.
@@ -62,10 +85,12 @@ will not resolve after pasting Markdown into another site's editor.
 | A4 | [500ms or 0.5s? Make Equivalent Queries Return the Same Results.](../filterless-parts-finder-medium.md) | Hashnode / Medium | [PNG](../images/query-interpretation-medium.png) / [SVG](../images/query-interpretation-medium.svg) |
 | A5 | [Fix the Typo, Keep the Filter: Better Text Search with KiaraDB](../airport-typeahead-with-kiara-typescript.md) | Hashnode / suitable Medium publication | [PNG](../images/typeahead.png) / [SVG](../images/typeahead.svg) |
 | A6 | [Which Rule Won? Query, Explain, and Refresh Configuration with KiaraDB](../runtime-config-with-kiara-typescript.md) | Owned blog / Hashnode | [PNG](../images/runtime-config.png) / [SVG](../images/runtime-config.svg) |
-| A7 | [What If a Redis-Style Cache Could Answer SQL-Style Queries?](../kiaradb-local-search-hackernoon.md) | Owned blog / HackerNoon editorial submission | [PNG](../images/field-agnostic-java-ts.png) / [SVG](../images/field-agnostic-java-ts.svg) |
+| A7 | [Your Data Has 100 Attributes. How Many Indexes Do You Need?](../kiaradb-local-search-hackernoon.md) | Owned blog / HackerNoon editorial submission | [PNG](../images/hackernoon-index-explosion.png) / [SVG](../images/hackernoon-index-explosion.svg) |
 
 - [Visual gallery](./graphics.html)
-- [All seven covers on one contact sheet](../images/campaign-contact-sheet.png)
+- [All covers and the engine explainer on one contact sheet](../images/campaign-contact-sheet.png)
+- HackerNoon inline diagram: [DFS bounds PNG](../images/hackernoon-trie-bounds.png) /
+  [SVG](../images/hackernoon-trie-bounds.svg)
 - [Evidence-backed feature inventory](./capability-inventory.md)
 - [Editorial plan and capability allocation](./editorial-plan.md)
 
@@ -90,7 +115,7 @@ Suggested editor setup, only if appropriate to publish:
 - Tags: `javascript`, `database`, `tutorial`, `webdev`.
 - Use the title field for the article heading; paste the body without a duplicate H1.
 - Upload the existing [schema/index/query PNG](../images/field-agnostic-java-ts.png),
-  which this tutorial intentionally reuses, and replace the local image path.
+  which this tutorial uses as its cover, and replace the local image path.
 - Retain the image caption and AI disclosure; select an accurate AI-disclosure
   tier for the final authorship process, not "Hand Written."
 - Add the author's true KiaraDB affiliation, if applicable.
@@ -115,10 +140,51 @@ Participate genuinely; do not manufacture testimonials, engagement, or comments.
 
 ## HackerNoon submission preparation
 
+Working title:
+
+**Your Data Has 100 Attributes. How Many Indexes Do You Need?**
+
+Alternative hooks for author review:
+
+- **Search by Any Combination of Attributes Without an Index for Each One**
+- **The Index Explosion Nobody Warns You About**
+- **Ten Attributes, 1,023 Indexes: Why Combination Search Breaks Key-Value Lookups**
+- **I Hit the Same Search Problem at Two Global Companies. So I Built a Database.**
+
+The article works backward from the problem: many attributes, unpredictable
+combinations, and the `2^n - 1` growth of per-combination lookups. It then
+addresses the experienced reader's first objection, "why not one index per
+attribute and intersect?", before introducing KiaraDB. The contrast is with
+lookup and intersection designs, not a named database product.
+
+Reader-review fixes in this revision:
+
+- Added the per-attribute intersection objection and why ID-set size hurts.
+- Added the in-process latency and read-mostly constraints behind the design.
+- Moved code before the algorithm, and explained the algorithm with a
+  table-of-contents analogy and a hotel diagram matching the code.
+- Reordered example fields so the unique `id` is the last trie level, per the
+  Java README's cardinality guidance.
+- Replaced isolated timings with a same-library before/after comparison.
+- Added update cadence, memory, and package coordinates.
+
+The travel and e-commerce experience is **author-supplied**; employers remain
+unnamed by choice. Example queries in that section are framed as illustrative.
+Do not add unverified specifics, metrics, or production claims.
+
 Suggested meta description:
 
-> Ten fields, 1,023 combinations: see how KiaraDB uses per-field indexes for
-> advanced in-memory filtering without manually creating composite indexes.
+> Hundreds of attributes make an index per combination impossible, and
+> intersecting per-attribute indexes still builds huge ID sets. A trie with
+> numbered paths answers any combination, with Java and TypeScript examples.
+
+The technical foundation is Anuj Kapoor's
+[Efficient Storage and Retrieval of In-Memory Static Data](https://journal.ut.ac.ir/article_76227_7508c12200be2eb3f9f16a97aac23a44.pdf),
+Journal of Algorithms and Computation, 52(1), 2020, pages 83-96.
+Sections 2-4 support the trie, DFS-bound, pairwise reduction, and complexity
+explanation. Do not import the paper's cross-database comparisons or equate its
+analysis with the current TS benchmark. The inline schematic is original, not a
+copied paper figure.
 
 Suggested eight tags, subject to the editor's available tags:
 
@@ -126,7 +192,7 @@ Suggested eight tags, subject to the editor's available tags:
 `software-development`, `search`, `software-architecture`.
 
 The author should supply their real background and connection to the project.
-The article deliberately does not invent a personal production-deployment story.
+The article includes only the author-supplied travel and e-commerce background.
 Explain AI involvement to the editor and confirm whether this draft is acceptable.
 Use an actual human-authored contribution if the publisher requires one, rather
 than disguising generated prose with cosmetic edits.
@@ -139,7 +205,7 @@ Do not claim a human review has happened before completing one.
 - **Affiliation:** "Disclosure: I [maintain / contribute to / work on] KiaraDB."
   Select only a role that is true; do not publish the bracketed alternatives.
 - **AI involvement:** "This article was drafted with AI assistance. The examples
-  were executed against Kiara TS 1.1.0."
+  were executed against the Kiara TS versions identified in the article."
 - **After personal review, if true:** "I reviewed the technical claims and
   examples and am responsible for the final text."
 - **Graphic caption:** "Original technical illustration created with AI
@@ -185,11 +251,21 @@ node --experimental-strip-types --test tests\articles.test.ts
 ```
 
 The campaign checks are also included in the repository's existing `npm test`
-pattern. They cover exact snippet output, short discovery queries, first-ten-line
-opening placement, Markdown references, README title consistency, and PNG dimensions.
-SVG text bounds were checked in a browser; all seven rasterized illustrations
-were visually inspected together.
+pattern. They execute each article's JavaScript or TypeScript blocks together in
+reading order and compare every emitted JSON line with the article's expected
+outputs. They also cover short queries, opening placement, Markdown references,
+README titles, and every embedded PNG's dimensions, including inline diagrams.
+SVG text bounds were checked in a browser; the rasterized illustrations were
+visually inspected.
 
-Final verification: **114 tests passed, zero failed**, comprising the original
-100 tests plus 14 campaign checks. The production build passed during the audit
-with the existing large-chunk warning; application source has not changed.
+Latest full integration verification: **116 tests passed, zero failed** against
+the optimized local candidate, comprising 100 application tests and 16 campaign
+checks. The production build also passed with the existing large-chunk warning.
+That count predates the later HackerNoon rewrites.
+
+The HackerNoon Java snippet is not run by `npm test`, which has no JDK. It was
+compiled for Java 8 and executed against a jar built from the current Java
+source (`2.0.13-SNAPSHOT`), with the Hotel class's full constructors and
+accessors and `id` declared last. It printed `[h1, h5] [h1, h4]`, matching the
+article. The diagram's "Paris + free cancellation" walkthrough (h1, h2) is
+asserted against the TypeScript library in the article tests.

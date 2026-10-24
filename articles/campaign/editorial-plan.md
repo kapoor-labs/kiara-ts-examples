@@ -38,7 +38,7 @@ demo; the new article itself must remain domain-neutral.
 | A4 | [Medium interpreter](../filterless-parts-finder-medium.md): **500ms or 0.5s? Make Equivalent Queries Return the Same Results.** | Show two inputs returning identical records, then expose an ambiguous duration | Unit metadata, numeric ranges, strict interpretation, editable source spans | 500-700 words |
 | A5 | [Text search](../airport-typeahead-with-kiara-typescript.md): **Fix the Typo, Keep the Filter: Better Text Search with KiaraDB** | A misspelling can recover while an exact status/score filter still excludes rows | Prefix completion vs record retrieval; typo/stemming; best/minimum scores; metadata | 500-700 words |
 | A6 | [Rules](../runtime-config-with-kiara-typescript.md): **Which Rule Won? Query, Explain, and Refresh Configuration with KiaraDB** | Find candidate rules, expose a tie, and keep the last good snapshot after rejection | Wildcards + application ranking, projections, replacement lifecycle, ownership boundary | 500-750 words |
-| A7 | [HackerNoon](../kiaradb-local-search-hackernoon.md): **What If a Redis-Style Cache Could Answer SQL-Style Queries?** | Contrast 10 individually indexed fields with 1,023 hypothetical per-subset lookups, then compose a multi-condition query | Flagship overview; Java + TS, hashes/trie/interval trees with implementation scope, advanced filters, memory trade-offs; Redis analogy, not a speed claim | 700-1,050 words |
+| A7 | [HackerNoon](../kiaradb-local-search-hackernoon.md): **Your Data Has 100 Attributes. How Many Indexes Do You Need?** | Work backward from the problem: many attributes, unpredictable combinations, exploding per-combination lookups, and costly ID-set intersection | Author's travel/e-commerce origin story, verified Java and TypeScript snippets before a paper-backed algorithm walkthrough, same-library before/after measurements; KiaraDB absent from title and opening | 1,000-1,300 prose words, plus snippets |
 
 ## Capability allocation
 
@@ -54,13 +54,20 @@ concise explanation. The inventory retains details too specialized for a headlin
 | A4 | C07, C20-C24, C31 | D02 |
 | A5 | C25-C28, C11, C19 | D05 |
 | A6 | C06, C08, C11, C14, C19, C29, C31 | D01 |
-| A7 | C01-C10, C12-C13, C16-C17, C19-C20, C25, C29-C31 | D03-D04 |
+| A7 | C01, C03, C08-C09, C11-C13, C15-C16, C20-C23, C25-C29 | D01-D02, D05 |
 
 ## Proof and editorial rules
 
-- Use small **explicitly fictional, domain-neutral records** with expected output.
-- Each long article gets one complete runnable JavaScript example using the
-  TypeScript library. Pin the documented tested version to 1.1.0.
+- Use small **explicitly fictional records** with expected output. Keep the
+  lessons domain-neutral; the flagship uses a familiar light-search example
+  without restricting the product's positioning to retail.
+- Technical tutorials get one complete runnable JavaScript example using the
+  TypeScript library. Keep npm instructions pinned to 1.1.0 until newer registry
+  availability is verified. State that outputs also passed on the optimized
+  1.1.1-search.0 candidate behind the 1.2.0 GitHub release; do not confuse that
+  release with successful npm publication. HackerNoon instead pairs one Java
+  example with one TypeScript example over identical data; the TypeScript block
+  is executed by the article tests, and the Java block is compiled separately.
 - Extract and execute the actual Markdown code blocks in automated checks;
   compare emitted JSON with the published JSON, not a separate approximation.
 - Test the short articles' illustrative queries too.
@@ -68,8 +75,17 @@ concise explanation. The inventory retains details too specialized for a headlin
   developers do not manually create an index for every query combination.
 - Do not conflate no manual composite indexes with unlimited scale, no memory
   cost, schema-free ingestion, or a row-count-independent complexity guarantee.
-- State TypeScript-only API scope. Java documentation supports the architectural
-  story, not an assertion that Java exports `QueryInterpreter`.
+- State TypeScript-only API scope. Both engines use the core optimized
+  structured-search design, but keyword ranking and other semantics still
+  differ. Do not imply that Java exports `QueryInterpreter`.
+- Keep performance evidence out of every opening. HackerNoon leads with the
+  problem and the author's experience, then KiaraDB, the paper's algorithm,
+  code, and measurements. Use the 2020 static-data paper for the trie, DFS-bound,
+  and pairwise-reduction design, not as evidence for every current TS feature.
+- HackerNoon and DEV may show sourced TS measurements, labeled with version,
+  workload size, p95 methodology, and trade-offs. HackerNoon names no other
+  database products; its contrast is a per-combination lookup design. Do not
+  turn synthetic results into universal speed guarantees.
 - Keep one useful CTA per piece. Do not repeat installation links after every
   section, bury benefits under disclaimers, or publish unsupported superlatives.
 - Author must confirm actual affiliation and comply with AI disclosure rules.
@@ -77,7 +93,8 @@ concise explanation. The inventory retains details too specialized for a headlin
 
 ## Art direction
 
-Create **seven different diagrams**, not seven text-heavy versions of one cover.
+Keep **seven distinct covers**, plus **two inline HackerNoon engine diagrams**.
+Do not turn the diagrams into dense screenshots of source code or paper figures.
 Use a consistent dark background, high-contrast type, generous safe margins,
 and a different accent/topic per illustration.
 
@@ -89,7 +106,7 @@ and a different accent/topic per illustration.
 | A4 | Two quantities merging into one canonical condition | `500ms` and `0.5s` to duration <= 0.5 seconds |
 | A5 | Correction feeding a filter gate | Corrected keyword does not bypass hard conditions |
 | A6 | Ranked candidate cards and separate active/replacement stores | Unique winner vs tie; prepare then activate |
-| A7 | Schema -> internal indexes -> composable conditions | Automatic indexing, with Java/TypeScript as supporting labels |
+| A7 | Index explosion (combinations vs. per-attribute indexes) cover; inline DFS-bound trie diagram | `2^n - 1` growth; ancestry matching across per-attribute indexes |
 
 Deliver editable SVG and **1600 x 840 PNG** for each. Use PNGs in article embeds
 for portability. Check text bounds and render every image; make a contact sheet

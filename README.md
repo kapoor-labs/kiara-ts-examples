@@ -23,7 +23,12 @@ npm run dev
 
 Open the local URL shown by Vite (usually `http://localhost:5173`).
 Use Node.js 24 or newer for the test and coverage commands. This project now
-requires the published `@kapoorlabs/kiara-ts` **1.1.0 or later in the 1.x series**.
+uses the local **1.1.1-search.0** optimized-search candidate from the
+[vendored package](./vendor/kapoorlabs-kiara-ts-1.1.1-search.0.tgz). `npm install`
+uses that tarball; it does not require an unpublished npm version to exist.
+The package contains its execution/benchmark documentation. The
+[implementation plan](./docs/kiara-ts-search-optimization-plan.md) records the
+scope and compatibility requirements. No npm release is implied.
 
 ## Application examples and articles
 
@@ -101,7 +106,7 @@ Publication-ready roundup articles:
 - [LinkedIn: New Filter Combination? You Shouldn't Need a New Index.](./articles/seven-business-features-with-kiara-linkedin.md)
 
 HackerNoon article:
-- [What If a Redis-Style Cache Could Answer SQL-Style Queries?](./articles/kiaradb-local-search-hackernoon.md)
+- [Your Data Has 100 Attributes. How Many Indexes Do You Need?](./articles/kiaradb-local-search-hackernoon.md)
 
 DEV-oriented tutorial draft (review platform rules before publishing):
 - [10 Fields, 1,023 Combinations: How KiaraDB Handles Changing Filters](./articles/kiaradb-composable-filters-devto.md)

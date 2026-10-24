@@ -23,6 +23,11 @@ Install `@kapoorlabs/kiara-ts@1.1.0`, save the following as `text-search.mjs`,
 and run `node text-search.mjs`. The records are fictional; this is a behavior
 demonstration, not a speed test.
 
+The same output was verified on **1.1.1-search.0**, the optimized candidate behind
+[the 1.2.0 GitHub release](https://github.com/kapoorlabs/kiara-ts/releases/tag/v1.2.0).
+Its release notes report npm publication blocked, so the install remains 1.1.0.
+These are TypeScript keyword semantics, not a promise of identical Java results.
+
 ```javascript
 import {
   Store, NormalizationProfile, DictionaryTrie, KeywordSearch, Operator,

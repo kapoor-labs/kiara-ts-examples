@@ -31,6 +31,11 @@ Install `@kapoorlabs/kiara-ts@1.1.0`, save this as `rules.mjs`, and run
 `node rules.mjs`. These are fictional rules to illustrate policy, not defaults
 your application should inherit.
 
+The same decisions were verified on **1.1.1-search.0**, the optimized candidate
+behind [1.2.0 on GitHub](https://github.com/kapoorlabs/kiara-ts/releases/tag/v1.2.0).
+Its release notes report npm publication blocked; the install stays at 1.1.0.
+Faster candidate retrieval does not change the application's precedence policy.
+
 ```javascript
 import {
   Store, StoreLoader, NormalizationProfile,

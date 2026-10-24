@@ -24,6 +24,10 @@ This example uses TypeScript package **1.1.0** through JavaScript. Install
 `@kapoorlabs/kiara-ts@1.1.0`, save the code as `unit-search.mjs`, and run
 `node unit-search.mjs`.
 
+The output was also verified on the optimized **1.1.1-search.0** candidate behind
+[1.2.0 on GitHub](https://github.com/kapoorlabs/kiara-ts/releases/tag/v1.2.0).
+Its release notes report npm publication blocked; keep the install pin above.
+
 The fictional records store both duration fields in seconds.
 
 ```javascript

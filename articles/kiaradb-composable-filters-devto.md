@@ -36,16 +36,18 @@ combination. **Automatic indexing is not the absence of indexes.**
 
 ## Where hashes, tries, and trees fit
 
-KiaraDB has Java and TypeScript implementations, but their internals differ:
+Java and the optimized TypeScript engine share the core structured-search design,
+not an identical API or keyword-ranking contract:
 
 | Implementation | Relevant structures |
 |---|---|
 | Java | Hash-based inverted indexes, a shared-prefix trie, ordered keys, and specialized interval trees |
-| TypeScript 1.1.0 | Per-field maps, ordered numeric entries, range entries, and a trie |
+| TypeScript 1.2.0 | Per-field node postings, an execution trie with DFS bounds, binary-search numeric bounds, and interval trees |
 
-Java's shared trie prefixes avoid repeating common paths. Its interval-tree
-preparation also releases temporary loading arrays. Those are concrete
-memory-conscious choices, not evidence of a fixed compression ratio.
+The optimized TypeScript path uses trie relationships to combine conditions
+and retrieve qualifying records. Unlike 1.1.0, selective numeric and range
+queries can prune unrelated keys and intervals rather than scanning them all.
+Shared paths save repeated structure, not a guaranteed percentage of memory.
 
 "One logical index per field" can still involve several supporting structures.
 The saving is avoiding a separately materialized lookup for every combination,
@@ -58,6 +60,11 @@ TypeScript compiler.
 
 Install `@kapoorlabs/kiara-ts@1.1.0` with npm. Save the following as
 `composable-search.mjs` and run `node composable-search.mjs`.
+
+The output was also verified on **1.1.1-search.0**, the optimization candidate
+behind [1.2.0 on GitHub](https://github.com/kapoorlabs/kiara-ts/releases/tag/v1.2.0).
+Its release notes report npm publication blocked; the install above deliberately
+targets 1.1.0.
 
 The six fictional rows deliberately isolate different reasons for rejection.
 `NATIVE` normalization preserves fractional scores; the default Java-compatible
@@ -165,6 +172,20 @@ SQL-style predicates over in-memory data are an appealing combination. They do
 not make KiaraDB a SQL engine or prove Redis-equivalent speed.
 [Redis Search](https://redis.io/docs/latest/develop/ai/search-and-query/) already
 supports rich querying; a single-key GET is not a fair comparison for this example.
+
+The [recorded comparison](https://github.com/kapoorlabs/kiara-ts/blob/v1.2.0/docs/search-execution.md#measured-comparison-with-typescript-110)
+used synthetic 100,000-record fixtures, Node 24.22.1 on Windows, and five isolated
+process pairs. These are median per-run p95 latencies in milliseconds:
+
+| Query | TS 1.1.0 | Optimized candidate |
+|---|---:|---:|
+| Broad filter, limit 100 | 45.02 | 21.21 |
+| Keyword search, warm cache | 490.54 | 27.34 |
+
+That is roughly 2x and 18x on these fixtures, not a Java or Redis comparison.
+The measurements used **1.1.1-search.0**, not a fresh 1.2.0 benchmark. At 100k,
+prepared heap was about 14% lower before text caches, but about 7% higher after
+warming them. Faster repeated search has a memory trade-off.
 
 For a real evaluation, measure:
 

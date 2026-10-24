@@ -197,6 +197,65 @@ const artwork = [
         + text(1120, 570, "tags CONTAINS_ALL", 28, palette.ink, 500, 365)
         + text(1120, 631, "one query", 25, palette.muted, 400, 365)),
   },
+  {
+    file: "hackernoon-trie-bounds", accent: "#64e0bf", number: "08",
+    heading: ["Paris hotels with free cancellation.", "No index for that pair. Just two lookups."],
+    sub: "Simplified to two levels: city, then cancellation policy.",
+    title: "DFS bounds combine two per-attribute lookups in a shared trie",
+    description: "Root spans 0 to 11. Paris spans 1 to 6, containing free 2 to 3 for hotels h1 and h2, and none 4 to 5 for h3 and h5. Rome spans 7 to 10, containing free 8 to 9 for h4. The cancellation index returns both free nodes; only the one inside Paris is kept.",
+    footer: "Original schematic. Bracketed numbers come from a depth-first walk, not from the data.",
+    draw: () => line(515, 390, 310, 430)
+      + line(515, 390, 765, 430, palette.line)
+      + line(310, 515, 202, 590)
+      + line(310, 515, 472, 590, palette.line)
+      + line(765, 515, 787, 590, palette.line)
+      + card(425, 330, 180, 60, text(445, 370, "root [0, 11]", 25, palette.muted, 500, 140))
+      + card(160, 430, 300, 85,
+        text(190, 483, "Paris [1, 6]", 32, palette.mint, 600, 240), palette.mint)
+      + card(615, 430, 300, 85,
+        text(645, 483, "Rome [7, 10]", 29, palette.muted, 500, 240))
+      + card(80, 590, 245, 95,
+        text(105, 631, "free [2, 3]", 29, palette.mint, 600, 195)
+        + text(105, 666, "h1, h2 / keep", 23, palette.ink, 500, 195), palette.mint)
+      + card(350, 590, 245, 95,
+        text(375, 631, "none [4, 5]", 29, palette.muted, 500, 195)
+        + text(375, 666, "h3, h5", 23, palette.muted, 400, 195))
+      + card(665, 590, 245, 95,
+        text(690, 631, "free [8, 9]", 29, palette.muted, 500, 195)
+        + text(690, 666, "h4 / skip", 23, palette.muted, 400, 195))
+      + card(990, 330, 530, 355,
+        text(1025, 379, "TWO PER-ATTRIBUTE LOOKUPS", 23, palette.mint, 700, 460)
+        + text(1025, 434, "city = Paris", 29, palette.ink, 600, 460)
+        + text(1025, 476, "[1, 6]", 28, palette.mint, 600, 460)
+        + text(1025, 537, "cancellation = free", 29, palette.ink, 600, 460)
+        + text(1025, 579, "[2, 3]     [8, 9]", 28, palette.ink, 500, 460)
+        + text(1025, 644, "Only [2, 3] is inside [1, 6].", 26, palette.mint, 600, 460))
+      + text(80, 733, "Is [2, 3] inside [1, 6]? Yes. Is [8, 9]? No. A few comparisons, no ID sets.", 27, palette.muted),
+  },
+  {
+    file: "hackernoon-index-explosion", accent: "#f6bd70", number: "09",
+    heading: ["Your data has 100 attributes.", "How many indexes do you need?"],
+    sub: "A direct lookup for every attribute combination grows as 2ⁿ − 1.",
+    title: "Combination lookups explode while per-attribute indexes grow linearly",
+    description: "Left: one lookup per attribute combination needs 1,023 lookups for 10 attributes, 1,048,575 for 20, 1,073,741,823 for 30, and about 1.27 times 10 to the 30th for 100. Right: one index per attribute needs 10, 20, 30, and 100.",
+    footer: "Counts nonempty attribute subsets. Per-attribute indexes still use memory.",
+    draw: () => {
+      const rows = [["10", "1,023", "10"], ["20", "1,048,575", "20"], ["30", "1,073,741,823", "30"], ["100", "≈ 1.27 × 10³⁰", "100"]];
+      return card(80, 330, 680, 390,
+        text(115, 378, "ONE LOOKUP PER COMBINATION", 23, "#f6bd70", 700, 610)
+        + text(115, 425, "attributes", 22, palette.muted, 500, 160)
+        + text(330, 425, "lookups", 22, palette.muted, 500, 380)
+        + rows.map(([n, combos], i) => text(115, 487 + i * 62, n, 34, palette.ink, 600, 160)
+          + text(330, 487 + i * 62, combos, 34, "#f6bd70", 700, 400)).join(""), "#f6bd70")
+        + line(760, 525, 830, 525, palette.mint, true)
+        + card(840, 330, 680, 390,
+          text(875, 378, "ONE INDEX PER ATTRIBUTE", 23, palette.mint, 700, 610)
+          + text(875, 425, "attributes", 22, palette.muted, 500, 160)
+          + text(1090, 425, "indexes", 22, palette.muted, 500, 380)
+          + rows.map(([n, , indexes], i) => text(875, 487 + i * 62, n, 34, palette.ink, 600, 160)
+            + text(1090, 487 + i * 62, indexes, 34, palette.mint, 700, 380)).join(""), palette.mint);
+    },
+  },
 ];
 
 await mkdir(directory, { recursive: true });
@@ -219,11 +278,12 @@ ${text(80, 807, item.footer, 22, palette.muted, 400, 1440)}
   sources.push(svg);
   await writeFile(new URL(`${item.file}.svg`, directory), svg + "\n");
 }
-const contactSheet = `<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="2020" viewBox="0 0 1600 2020" role="img" aria-labelledby="sheet-title sheet-desc">
-<title id="sheet-title">KiaraDB campaign contact sheet</title><desc id="sheet-desc">All seven article graphics arranged in a two-column grid.</desc>
-<rect width="1600" height="2020" fill="${palette.background}"/>
+const sheetHeight = 190 + Math.ceil(sources.length / 2) * 445 + 50;
+const contactSheet = `<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="${sheetHeight}" viewBox="0 0 1600 ${sheetHeight}" role="img" aria-labelledby="sheet-title sheet-desc">
+<title id="sheet-title">KiaraDB campaign contact sheet</title><desc id="sheet-desc">All ${artwork.length} article graphics arranged in a two-column grid.</desc>
+<rect width="1600" height="${sheetHeight}" fill="${palette.background}"/>
 <g font-family="Segoe UI, Arial, sans-serif">${text(60, 82, "KiaraDB / campaign graphics", 46, palette.ink, 700)}
-${text(60, 133, "Seven reader benefits. Seven original diagrams.", 27, palette.muted)}</g>
+${text(60, 133, "Article covers and an engine explainer.", 27, palette.muted)}</g>
 ${sources.map((svg, i) => svg.replace('width="1600" height="840"', `x="${60 + i % 2 * 760}" y="${190 + Math.floor(i / 2) * 445}" width="720" height="378"`)
     .replaceAll('id="title"', `id="title-${i}"`).replaceAll('id="desc"', `id="desc-${i}"`)
     .replace('aria-labelledby="title desc"', `aria-labelledby="title-${i} desc-${i}"`)
@@ -238,7 +298,7 @@ body{margin:0;padding:48px;background:#081426;color:#f2f6fc;font:18px "Segoe UI"
 h1{margin:0 0 8px;font-size:38px}p{color:#afc2d7}main{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:28px}
 figure{margin:0}img{display:block;width:100%;height:auto;border:1px solid #304963;border-radius:12px}
 figcaption{padding:12px 0}a{color:#9caaff}@media(max-width:800px){main{grid-template-columns:1fr}}
-</style><h1>KiaraDB / campaign graphics</h1><p>Seven original diagrams. 1600 x 840 PNG exports and editable SVG sources.</p><main>
+</style><h1>KiaraDB / campaign graphics</h1><p>${artwork.length} original diagrams. 1600 x 840 PNG exports and editable SVG sources.</p><main>
 ${artwork.map(item => `<figure><img src="../images/${item.file}.png" alt="${escape(item.description)}"><figcaption>${item.number} / ${escape(item.title)} &middot; <a href="../images/${item.file}.png">PNG</a> &middot; <a href="../images/${item.file}.svg">SVG</a></figcaption></figure>`).join("\n")}
 </main></html>`;
 await writeFile(new URL("../articles/campaign/graphics.html", import.meta.url), gallery + "\n");
