@@ -78,14 +78,16 @@ concise explanation. The inventory retains details too specialized for a headlin
 - State TypeScript-only API scope. Both engines use the core optimized
   structured-search design, but keyword ranking and other semantics still
   differ. Do not imply that Java exports `QueryInterpreter`.
-- Keep performance evidence out of every opening. HackerNoon leads with the
-  problem and the author's experience, then KiaraDB, the paper's algorithm,
-  code, and measurements. Use the 2020 static-data paper for the trie, DFS-bound,
-  and pairwise-reduction design, not as evidence for every current TS feature.
+- Keep performance evidence out of every opening. HackerNoon and DEV both lead
+  with the problem and the author's experience, then the per-field intersection
+  objection, KiaraDB, code, the paper's algorithm, and measurements. DEV makes
+  the algorithm hands-on with a runnable plain JavaScript implementation. Use the
+  2020 static-data paper for the trie, DFS-bound, and pairwise-reduction design,
+  not as evidence for every current TS feature.
 - HackerNoon and DEV may show sourced TS measurements, labeled with version,
-  workload size, p95 methodology, and trade-offs. HackerNoon names no other
-  database products; its contrast is a per-combination lookup design. Do not
-  turn synthetic results into universal speed guarantees.
+  workload size, p95 methodology, and trade-offs, using different benchmark
+  rows so the pieces are not duplicates. Neither names other database
+  products. Do not turn synthetic results into universal speed guarantees.
 - Keep one useful CTA per piece. Do not repeat installation links after every
   section, bury benefits under disclaimers, or publish unsupported superlatives.
 - Author must confirm actual affiliation and comply with AI disclosure rules.

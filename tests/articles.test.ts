@@ -53,7 +53,7 @@ for (const file of articles) {
     const image = images[0];
     assert.ok(image, "Every campaign article needs an accessible PNG cover.");
     const opening = article.slice(article.indexOf("\n") + 1, image.index).trim();
-    if (file.includes("hackernoon")) {
+    if (file.includes("hackernoon") || file.includes("devto")) {
       assert.doesNotMatch(`${title}\n${opening}`, /KiaraDB/, "Lead with the problem, not the product.");
     } else {
       assert.ok(opening.includes("KiaraDB"), "Explain the mechanism before the image.");
@@ -76,6 +76,35 @@ for (const file of articles) {
     }
   });
 }
+
+test("DEV tutorial works backward from the filter problem to a buildable algorithm", () => {
+  const article = readFileSync(resolve(articlesDirectory, "kiaradb-composable-filters-devto.md"), "utf8");
+  const order = [
+    "## Same wall, two companies",
+    "## The math: every field doubles the work",
+    "## The obvious fix, and where it hurts",
+    "## The idea in two sentences",
+    "## Run it: one prepared store, many filter combinations",
+    "## Build the core trick yourself",
+    "## Does it beat intersecting ID sets?",
+    "## When to reach for it",
+  ].map((heading) => article.indexOf(heading));
+  assert.ok(order.every((position, i) => position > 0 && (i === 0 || position > order[i - 1])));
+  assert.doesNotMatch(article, /\b(Redis|PostgreSQL)\b/i);
+  assert.match(article, /global\s+travel\s+company/);
+  assert.match(article, /global\s+e-commerce\s+company/);
+  assert.match(article, /\*Disclosure: This article was drafted with AI assistance\.\*/);
+  assert.ok(article.indexOf("KiaraDB") > order[2], "Introduce KiaraDB after the problem.");
+  assert.match(article, /https:\/\/journal\.ut\.ac\.ir\/article_76227_7508c12200be2eb3f9f16a97aac23a44\.pdf/);
+  assert.match(article, /\.\/images\/devto-filter-combinations\.png/);
+  assert.match(article, /\.\/images\/hackernoon-trie-bounds\.png/);
+  assert.match(article, /\{"paris":\[\[1,6\]\],"free":\[\[2,3\],\[8,9\]\],"result":\["h1","h2"\]\}/);
+  const diagram = readFileSync(resolve(articlesDirectory, "images", "hackernoon-trie-bounds.svg"), "utf8");
+  for (const label of ["Paris [1, 6]", "free [2, 3]", "free [8, 9]", "Rome [7, 10]"]) {
+    assert.ok(diagram.includes(label), `The diagram must match the toy output: ${label}`);
+  }
+  assert.equal(2 ** 5 - 1, 31);
+});
 
 test("HackerNoon works backward from the indexing problem to the algorithm and code", () => {
   const article = readFileSync(resolve(articlesDirectory, "kiaradb-local-search-hackernoon.md"), "utf8");

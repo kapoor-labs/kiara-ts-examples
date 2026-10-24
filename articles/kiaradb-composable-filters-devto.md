@@ -1,74 +1,61 @@
-# 10 Fields, 1,023 Combinations: How KiaraDB Handles Changing Filters
+# Your Filter UI Has 10 Fields. That's 1,023 Possible Queries.
 
-Adding another filter should not mean designing another lookup key. This tutorial uses KiaraDB to combine equality, numeric bounds, tags, and stored intervals after one preparation step.
-You'll work through the indexing math, run the queries, and check the results against a plain JavaScript filter.
+Every field you add to a filter panel doubles the combinations users can pick. You can't build an index for each one, and scanning every record slows down as data grows.
+This tutorial shows the alternative I use: index each field once, then combine them at query time with a numbered tree. You'll even build the core trick yourself.
 
 *Disclosure: This article was drafted with AI assistance.*
 
-![Declared fields are prepared into reusable internal indexes, then combined into queries. KiaraDB has Java and TypeScript implementations.](./images/field-agnostic-java-ts.png)
+![A filter panel with ten fields, three of them selected. Users can pick 1,023 combinations, while only ten per-field indexes are maintained.](./images/devto-filter-combinations.png)
 
 *Technical illustration created with AI assistance.*
 
-## The problem with a lookup for every combination
+## Same wall, two companies
 
-A key-value lookup is straightforward when you know the key. Requirements become
-more interesting when someone asks for:
+I first hit this problem at a global travel company, and again at a global
+e-commerce company. Records carried many attributes, every new feature asked
+for a different combination of them, and answers had to fit inside a
+user-facing request. The data changed rarely; the questions changed constantly.
 
-- Records with a particular status.
-- That status **and** a score within a band.
-- Those conditions **and** every required tag.
-- Everything above, excluding a tag, with a point inside a stored interval.
+## The math: every field doubles the work
 
-One possible design is to maintain a separate lookup index for each combination.
-If there are `n` independently selectable fields, the number of nonempty subsets
-is `2^n - 1`.
+With `n` independent filter fields, users can pick `2^n - 1` nonempty
+combinations:
 
-For **10 fields**, that is **1,023 combinations: 10 single-field and 1,013
-multi-field**. The calculation counts field subsets, not values, sort orders,
-memory usage, or actual indexes required by a database.
+| Filter fields | Possible combinations |
+|---:|---:|
+| 5 | 31 |
+| 10 | 1,023 |
+| 20 | 1,048,575 |
 
-You do not have to choose that design. Per-field indexes can be reused across
-queries; PostgreSQL, for example, supports [combining multiple indexes](https://www.postgresql.org/docs/current/indexes-bitmap-scans.html).
+A dedicated lookup per combination is out. So is a full scan per request if
+the dataset is large and the budget is a few milliseconds.
 
-KiaraDB uses searchable fields as its indexing unit. You define a schema and
-prepare the data, rather than defining a composite index for every new
-combination. **Automatic indexing is not the absence of indexes.**
+## The obvious fix, and where it hurts
 
-## Where hashes, tries, and trees fit
+The standard answer is **one index per field**, then intersecting the matching
+ID sets. Ten fields, ten indexes. Done?
 
-Java and the optimized TypeScript engine share the core structured-search design,
-not an identical API or keyword-ranking contract:
+Mostly. The catch is that intersection cost follows the size of each matched
+list, not the size of the answer. If `status = active` matches 70% of a million
+records and `score >= 80` matches 50%, you build and compare hundreds of
+thousands of IDs to return a handful.
 
-| Implementation | Relevant structures |
-|---|---|
-| Java | Hash-based inverted indexes, a shared-prefix trie, ordered keys, and specialized interval trees |
-| TypeScript 1.2.0 | Per-field node postings, an execution trie with DFS bounds, binary-search numeric bounds, and interval trees |
+What I wanted was per-field indexes that can be combined **without building
+large ID sets**. That became **KiaraDB**, an in-memory engine for read-mostly
+data, available for Java and TypeScript.
 
-The optimized TypeScript path uses trie relationships to combine conditions
-and retrieve qualifying records. Unlike 1.1.0, selective numeric and range
-queries can prune unrelated keys and intervals rather than scanning them all.
-Shared paths save repeated structure, not a guaranteed percentage of memory.
+## The idea in two sentences
 
-"One logical index per field" can still involve several supporting structures.
-The saving is avoiding a separately materialized lookup for every combination,
-not reducing the whole dataset to ten tiny objects.
+Store records as paths in a tree, so records that share leading values share
+nodes. Number every node during a depth-first walk, so "is this node underneath
+that one?" becomes two integer comparisons, which is all you need to combine
+conditions from different field indexes.
 
-The example below uses the TypeScript library from JavaScript. It needs no
-TypeScript compiler.
+## Run it: one prepared store, many filter combinations
 
-## Run it: one preparation, two filter combinations
-
-Install `@kapoorlabs/kiara-ts@1.1.0` with npm. Save the following as
-`composable-search.mjs` and run `node composable-search.mjs`.
-
-The output was also verified on **1.1.1-search.0**, the optimization candidate
-behind [1.2.0 on GitHub](https://github.com/kapoorlabs/kiara-ts/releases/tag/v1.2.0).
-Its release notes report npm publication blocked; the install above deliberately
-targets 1.1.0.
-
-The six fictional rows deliberately isolate different reasons for rejection.
-`NATIVE` normalization preserves fractional scores; the default Java-compatible
-numeric profile truncates fractional numeric keys.
+Install `@kapoorlabs/kiara-ts@1.1.0` from npm, save this as
+`composable-search.mjs`, and run `node composable-search.mjs`. Each fictional row
+fails for a different reason:
 
 ```javascript
 import assert from "node:assert/strict";
@@ -78,19 +65,19 @@ import {
 } from "@kapoorlabs/kiara-ts";
 
 const rows = [
-  { id: "a", status: "active", score: 85.5, tags: "audited,export", window: "10->30" },
-  { id: "b", status: "active", score: 91.25, tags: "export", window: "10->30" },
-  { id: "c", status: "archived", score: 90, tags: "audited,export", window: "10->30" },
-  { id: "d", status: "active", score: 79, tags: "audited,export", window: "10->30" },
-  { id: "e", status: "active", score: 90, tags: "audited,export", window: "21->30" },
-  { id: "f", status: "active", score: 90, tags: "audited,export,blocked", window: "10->30" },
+  { status: "active", score: 85.5, tags: "audited,export", window: "10->30", id: "a" },
+  { status: "active", score: 91.25, tags: "export", window: "10->30", id: "b" },
+  { status: "archived", score: 90, tags: "audited,export", window: "10->30", id: "c" },
+  { status: "active", score: 79, tags: "audited,export", window: "10->30", id: "d" },
+  { status: "active", score: 90, tags: "audited,export", window: "21->30", id: "e" },
+  { status: "active", score: 90, tags: "audited,export,blocked", window: "10->30", id: "f" },
 ];
 const store = new Store(defineSchema([
-  textField("id", { ignoreIndex: true }),
   textField("status", { caseInsensitive: true }),
   numberField("score"),
   textField("tags", { secondaryType: "commaSeparatedStrings" }),
   textField("window", { secondaryType: "numericRange" }),
+  textField("id", { ignoreIndex: true }),
 ]), { normalizationProfile: NormalizationProfile.NATIVE });
 store.loadRows(rows);
 store.prepare();
@@ -125,83 +112,161 @@ assert.deepEqual(allTags, reference);
 console.log(JSON.stringify({ allTags, eitherTag, agreesWithScan: true }));
 ```
 
-Expected output:
-
 ```json
 {"allTags":[{"id":"a","score":85.5}],"eitherTag":[{"id":"a","score":85.5},{"id":"b","score":91.25}],"agreesWithScan":true}
 ```
 
-The assertion runs before the success flag is printed. If the query and the
-reference filter disagree, execution fails.
+The assertion checks the indexed query against a plain JavaScript filter first.
 
-## What the result actually demonstrates
+`a` passes everything. `b` lacks `audited`, so it
+appears only when the tag rule switches from ALL to ANY. `c` is archived, `d`
+scores too low, `e`'s window starts after 20, and `f` carries the excluded
+`blocked` tag.
 
-`a` satisfies every requirement. `b` lacks `audited`, so it appears only when
-the tag condition changes from ALL to ANY. The remaining rows fail status,
-score, range containment, or the explicit exclusion.
+Notice what did **not** happen between the two queries: no new index, no
+second `prepare()`, no reload. Details worth knowing:
 
-Notice what **does not** happen between the queries: no additional `prepare()`,
-composite-index declaration, or data reload.
+- Conditions combine with **AND**; ALL and ANY apply to the tag values only.
+- `BETWEEN` includes both bounds, and the window check asks whether a stored
+  range contains the point `20`.
+- Fields become tree levels in schema order. Put low-variety fields first and
+  unique IDs last, so early levels share more nodes.
+- `ignoreIndex` keeps `id` out of filtering while projections still return it.
+- `NATIVE` keeps decimals such as `85.5` intact; the default profile mirrors
+  the Java library's integer keys.
 
-Several details are worth keeping:
+## Build the core trick yourself
 
-- Conditions are combined with **AND**. ANY applies to the selected tag values,
-  not to the entire query.
-- `BETWEEN` includes both bounds. A stored range containing `20` is a point
-  containment test, not a general interval-overlap operation.
-- `createCondition` supplies the equality default. Raw condition objects should
-  specify their operator.
-- `ignoreIndex` excludes `id` from filtering, but projections can still return
-  it. That is not an access-control mechanism.
-- The reference scan assumes these clean fixture strings. It is a correctness
-  check for the example, not a replacement parser for arbitrary source data.
+The algorithm comes from my 2020 paper,
+[Efficient Storage and Retrieval of In-Memory Static Data](https://journal.ut.ac.ir/article_76227_7508c12200be2eb3f9f16a97aac23a44.pdf).
+Here is a stripped-down version you can run: two fields, equality only.
 
-## Beyond this example
+```javascript
+const hotels = [
+  { city: "Paris", cancellation: "free", id: "h1" },
+  { city: "Paris", cancellation: "free", id: "h2" },
+  { city: "Paris", cancellation: "none", id: "h3" },
+  { city: "Rome", cancellation: "free", id: "h4" },
+  { city: "Paris", cancellation: "none", id: "h5" },
+];
+const fields = ["city", "cancellation"];
 
-The structured API also handles supported dates, date-times, collections, and
-collections of ranges. Choose operators according to the field's type.
+// 1. Records become paths; equal leading values share a node.
+const root = { children: new Map(), ids: [] };
+for (const hotel of hotels) {
+  let node = root;
+  for (const field of fields) {
+    const value = hotel[field];
+    if (!node.children.has(value)) {
+      node.children.set(value, { field, value, children: new Map(), ids: [] });
+    }
+    node = node.children.get(value);
+  }
+  node.ids.push(hotel.id);
+}
 
-Separately, the TypeScript `QueryInterpreter` can discover whole values across
-eligible fields, resolve configured aliases and units, and expose ambiguous
-matches instead of guessing. That is a query-input layer, not unrestricted
-natural-language understanding or an API assumed to exist in Java.
+// 2. A depth-first walk numbers every node.
+// 3. Each field gets one index: value -> nodes, already sorted by start.
+let clock = 0;
+const index = new Map(fields.map((field) => [field, new Map()]));
+(function walk(node) {
+  node.start = clock++;
+  if (node.field) {
+    const byValue = index.get(node.field);
+    if (!byValue.has(node.value)) byValue.set(node.value, []);
+    byValue.get(node.value).push(node);
+  }
+  for (const child of node.children.values()) walk(child);
+  node.end = clock++;
+})(root);
 
-## Measure before calling it cache-speed search
+// 4. Combine two conditions: keep descendants inside an ancestor's range.
+function within(ancestors, descendants) {
+  const result = [];
+  for (const ancestor of ancestors) {
+    let low = 0;
+    let high = descendants.length;
+    while (low < high) {
+      const mid = (low + high) >> 1;
+      if (descendants[mid].start < ancestor.start) low = mid + 1;
+      else high = mid;
+    }
+    for (let i = low; i < descendants.length && descendants[i].start < ancestor.end; i++) {
+      result.push(descendants[i]);
+    }
+  }
+  return result;
+}
 
-SQL-style predicates over in-memory data are an appealing combination. They do
-not make KiaraDB a SQL engine or prove Redis-equivalent speed.
-[Redis Search](https://redis.io/docs/latest/develop/ai/search-and-query/) already
-supports rich querying; a single-key GET is not a fair comparison for this example.
+const paris = index.get("city").get("Paris");
+const free = index.get("cancellation").get("free");
+console.log(JSON.stringify({
+  paris: paris.map((node) => [node.start, node.end]),
+  free: free.map((node) => [node.start, node.end]),
+  result: within(paris, free).flatMap((node) => node.ids),
+}));
+```
 
-The [recorded comparison](https://github.com/kapoorlabs/kiara-ts/blob/v1.2.0/docs/search-execution.md#measured-comparison-with-typescript-110)
-used synthetic 100,000-record fixtures, Node 24.22.1 on Windows, and five isolated
-process pairs. These are median per-run p95 latencies in milliseconds:
+```json
+{"paris":[[1,6]],"free":[[2,3],[8,9]],"result":["h1","h2"]}
+```
 
-| Query | TS 1.1.0 | Optimized candidate |
+The same tree, with the numbers your code just printed:
+
+![A two-level hotel tree with depth-first numbers. Paris spans 1 to 6 and Rome spans 7 to 10. Free cancellation appears at 2 to 3 under Paris and 8 to 9 under Rome; only the node inside Paris survives.](./images/hackernoon-trie-bounds.png)
+
+The city index returned one node, `[1, 6]`. All Paris hotels sit under it,
+instead of in a list of IDs. The cancellation index returned two nodes, and
+binary search found that only `[2, 3]` sits inside `[1, 6]`. Rome's branch was
+never read, and nothing was built for "city + cancellation."
+
+The real engine generalizes this. Either list can be the shorter one, numeric
+fields use sorted keys with binary-searched bounds, stored ranges use interval
+trees, and limited queries stop early in source order.
+
+## Does it beat intersecting ID sets?
+
+I can compare both strategies within one library. An earlier TypeScript engine
+kept one index per field but merged results as ID sets, rechecked candidates,
+and scanned numeric and range entries linearly. The current tree engine ships
+in [kiara-ts 1.2.0](https://github.com/kapoorlabs/kiara-ts/releases/tag/v1.2.0),
+currently on GitHub rather than npm.
+
+Synthetic 100,000-record dataset, four fields, Node 24, five isolated runs per
+engine, median p95:
+
+| Query | ID-set engine | Tree engine |
 |---|---:|---:|
-| Broad filter, limit 100 | 45.02 | 21.21 |
-| Keyword search, warm cache | 490.54 | 27.34 |
+| Equality, one result | 16.6 ms | 0.014 ms |
+| Two fields combined, 2 results | 21.3 ms | 0.032 ms |
+| Exclusion, first 100 results | 36.6 ms | 8.8 ms |
+| Every record returned | 90.3 ms | 39.0 ms |
+| Keyword search, warm cache | 490.5 ms | 27.3 ms |
 
-That is roughly 2x and 18x on these fixtures, not a Java or Redis comparison.
-The measurements used **1.1.1-search.0**, not a fresh 1.2.0 benchmark. At 100k,
-prepared heap was about 14% lower before text caches, but about 7% higher after
-warming them. Faster repeated search has a memory trade-off.
+Selective queries dropped far below a millisecond; queries returning many
+records improved less because those records still have to be assembled.
+Prepared memory was about 14% lower than the ID-set engine; after warming the
+keyword caches, it was about 7% higher. [The benchmark report](https://github.com/kapoorlabs/kiara-ts/blob/v1.2.0/docs/search-execution.md)
+has the method and raw runs.
 
-For a real evaluation, measure:
+These numbers compare two versions of one library, not every intersection
+strategy. To evaluate it yourself, measure preparation separately from
+queries, include broad queries alongside selective ones, check memory while
+swapping snapshots, and verify results against a trusted baseline.
 
-1. Loading and preparation separately from query execution.
-2. Memory after preparation and while replacing a snapshot.
-3. Latency for selective queries **and** queries returning many rows.
-4. Result correctness against a trusted baseline.
+## When to reach for it
 
-Use comparable datasets, predicates, deployment conditions, and concurrency.
-Six rows establish semantics, not throughput.
+Reach for it when data is **read-mostly**, fits in memory, has **many fields**,
+and users combine them **unpredictably**: catalogs, inventories, reference
+data, and layered configuration.
 
-For a small list, the reference filter may be all you need. For durable storage,
-transactions, or joins, retain systems designed for those jobs. KiaraDB's
-prepared-store model is a candidate for read-mostly search, not a replacement
-for every data layer.
+Skip it for durable storage, transactions, or thousands of writes per second.
+Updates mean preparing a replacement snapshot and swapping it in. For a small
+list, the plain `filter` from the example may be all you need.
 
-The reusable lesson is to separate **which fields are indexed** from **which
-conditions a query combines**. Test the changing questions, not just the
-first lookup.
+## Try it
+
+- TypeScript: [kapoorlabs/kiara-ts](https://github.com/kapoorlabs/kiara-ts)
+- Java: [kapoorlabs/kiara](https://github.com/kapoorlabs/kiara)
+
+Start with your awkward filter: the combination nobody planned an index for.

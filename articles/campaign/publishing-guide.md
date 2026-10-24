@@ -88,7 +88,8 @@ will not resolve after pasting Markdown into another site's editor.
 | A7 | [Your Data Has 100 Attributes. How Many Indexes Do You Need?](../kiaradb-local-search-hackernoon.md) | Owned blog / HackerNoon editorial submission | [PNG](../images/hackernoon-index-explosion.png) / [SVG](../images/hackernoon-index-explosion.svg) |
 
 - [Visual gallery](./graphics.html)
-- [All covers and the engine explainer on one contact sheet](../images/campaign-contact-sheet.png)
+- [All covers and the engine explainer on one contact sheet](../images/campaign-contact-sheet.png),
+  including the DEV [filter-combinations cover](../images/devto-filter-combinations.png)
 - HackerNoon inline diagram: [DFS bounds PNG](../images/hackernoon-trie-bounds.png) /
   [SVG](../images/hackernoon-trie-bounds.svg)
 - [Evidence-backed feature inventory](./capability-inventory.md)
@@ -96,11 +97,15 @@ will not resolve after pasting Markdown into another site's editor.
 
 ## DEV-oriented educational draft
 
-[10 Fields, 1,023 Combinations: How KiaraDB Handles Changing Filters](../kiaradb-composable-filters-devto.md)
-is a separate tutorial adaptation, not another scheduled promotional release.
-It teaches the subset calculation, demonstrates ALL versus ANY with exclusions
-and interval containment, and checks results against a plain JavaScript filter.
-It omits the campaign CTA and includes an explicit AI disclosure.
+[Your Filter UI Has 10 Fields. That's 1,023 Possible Queries.](../kiaradb-composable-filters-devto.md)
+is a separate tutorial, not a copy of the HackerNoon story. It follows the same
+problem-first arc (the `2^n - 1` growth, the author's travel and e-commerce
+experience, the per-field intersection objection, then KiaraDB), but its core
+is hands-on: an advanced-filter example checked against a plain JavaScript
+filter, and a 40-line plain JavaScript implementation of the paper's numbered
+trie whose printed numbers match the reused DFS-bounds diagram. Its benchmark
+rows differ from HackerNoon's, and it names no other database products.
+It omits the campaign CTA and includes explicit AI disclosures.
 
 **It is not pre-approved for DEV.** The platform's published AI guidelines,
 rechecked on 2026-10-24, restrict promoting a business, program, or course.
@@ -112,10 +117,11 @@ Do not remove the disclosure or misrepresent its authorship.
 
 Suggested editor setup, only if appropriate to publish:
 
-- Tags: `javascript`, `database`, `tutorial`, `webdev`.
+- Tags: `javascript`, `database`, `tutorial`, `algorithms`.
 - Use the title field for the article heading; paste the body without a duplicate H1.
-- Upload the existing [schema/index/query PNG](../images/field-agnostic-java-ts.png),
-  which this tutorial uses as its cover, and replace the local image path.
+- Upload the [filter-combinations PNG](../images/devto-filter-combinations.png)
+  as the cover and the [DFS-bounds PNG](../images/hackernoon-trie-bounds.png)
+  inline, replacing both local image paths.
 - Retain the image caption and AI disclosure; select an accurate AI-disclosure
   tier for the final authorship process, not "Hand Written."
 - Add the author's true KiaraDB affiliation, if applicable.

@@ -109,7 +109,7 @@ HackerNoon article:
 - [Your Data Has 100 Attributes. How Many Indexes Do You Need?](./articles/kiaradb-local-search-hackernoon.md)
 
 DEV-oriented tutorial draft (review platform rules before publishing):
-- [10 Fields, 1,023 Combinations: How KiaraDB Handles Changing Filters](./articles/kiaradb-composable-filters-devto.md)
+- [Your Filter UI Has 10 Fields. That's 1,023 Possible Queries.](./articles/kiaradb-composable-filters-devto.md)
 
 Campaign materials:
 - [Evidence-backed capability inventory](./articles/campaign/capability-inventory.md)

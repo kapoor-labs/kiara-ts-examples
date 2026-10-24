@@ -256,6 +256,34 @@ const artwork = [
             + text(1090, 487 + i * 62, indexes, 34, palette.mint, 700, 380)).join(""), palette.mint);
     },
   },
+  {
+    file: "devto-filter-combinations", accent: "#7eb9ff", number: "10",
+    heading: ["Your filter UI has 10 fields.", "That's 1,023 possible queries."],
+    sub: "Index each field once. Combine the indexes at query time.",
+    title: "Ten filter fields allow 1,023 combinations but need only ten per-field indexes",
+    description: "A filter panel lists ten fields, with status, score, and tags selected. Users can pick 1,023 nonempty combinations of those fields, while the application maintains only ten per-field indexes.",
+    footer: "2¹⁰ − 1 nonempty field subsets. Per-field indexes still use memory.",
+    draw: () => {
+      const fields = ["status", "score", "tags", "window", "city", "brand", "stars", "price", "region", "type"];
+      const picked = new Set(["status", "score", "tags"]);
+      return card(80, 330, 620, 390,
+        text(110, 378, "FILTER PANEL", 23, "#7eb9ff", 700, 560)
+        + fields.map((field, i) => {
+          const x = 110 + Math.floor(i / 5) * 290;
+          const y = 402 + (i % 5) * 62;
+          const color = picked.has(field) ? palette.mint : palette.muted;
+          return `<g data-box="${x} ${y} 260 52">${rect(x, y, 260, 52, "#132b3c", color, 12)}`
+            + rect(x + 20, y + 16, 20, 20, picked.has(field) ? palette.mint : "none", color, 4)
+            + text(x + 56, y + 35, field, 25, color, 600, 186) + "</g>";
+        }).join(""))
+        + line(700, 525, 790, 525, "#7eb9ff", true)
+        + card(810, 330, 710, 390,
+          text(845, 378, "COMBINATIONS A USER CAN PICK", 23, "#7eb9ff", 700, 640)
+          + text(845, 470, "1,023", 84, "#f6bd70", 700, 640)
+          + text(845, 560, "INDEXES YOU MAINTAIN, ONE PER FIELD", 23, "#7eb9ff", 700, 640)
+          + text(845, 652, "10", 84, palette.mint, 700, 640), "#7eb9ff");
+    },
+  },
 ];
 
 await mkdir(directory, { recursive: true });
