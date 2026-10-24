@@ -101,7 +101,10 @@ Publication-ready roundup articles:
 - [LinkedIn: New Filter Combination? You Shouldn't Need a New Index.](./articles/seven-business-features-with-kiara-linkedin.md)
 
 HackerNoon article:
-- [Search Any Field Combination Without Managing Composite Indexes](./articles/kiaradb-local-search-hackernoon.md)
+- [What If a Redis-Style Cache Could Answer SQL-Style Queries?](./articles/kiaradb-local-search-hackernoon.md)
+
+DEV-oriented tutorial draft (review platform rules before publishing):
+- [10 Fields, 1,023 Combinations: How KiaraDB Handles Changing Filters](./articles/kiaradb-composable-filters-devto.md)
 
 Campaign materials:
 - [Evidence-backed capability inventory](./articles/campaign/capability-inventory.md)

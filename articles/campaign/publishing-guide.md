@@ -62,12 +62,39 @@ will not resolve after pasting Markdown into another site's editor.
 | A4 | [500ms or 0.5s? Make Equivalent Queries Return the Same Results.](../filterless-parts-finder-medium.md) | Hashnode / Medium | [PNG](../images/query-interpretation-medium.png) / [SVG](../images/query-interpretation-medium.svg) |
 | A5 | [Fix the Typo, Keep the Filter: Better Text Search with KiaraDB](../airport-typeahead-with-kiara-typescript.md) | Hashnode / suitable Medium publication | [PNG](../images/typeahead.png) / [SVG](../images/typeahead.svg) |
 | A6 | [Which Rule Won? Query, Explain, and Refresh Configuration with KiaraDB](../runtime-config-with-kiara-typescript.md) | Owned blog / Hashnode | [PNG](../images/runtime-config.png) / [SVG](../images/runtime-config.svg) |
-| A7 | [Search Any Field Combination Without Managing Composite Indexes](../kiaradb-local-search-hackernoon.md) | Owned blog / HackerNoon editorial submission | [PNG](../images/field-agnostic-java-ts.png) / [SVG](../images/field-agnostic-java-ts.svg) |
+| A7 | [What If a Redis-Style Cache Could Answer SQL-Style Queries?](../kiaradb-local-search-hackernoon.md) | Owned blog / HackerNoon editorial submission | [PNG](../images/field-agnostic-java-ts.png) / [SVG](../images/field-agnostic-java-ts.svg) |
 
 - [Visual gallery](./graphics.html)
 - [All seven covers on one contact sheet](../images/campaign-contact-sheet.png)
 - [Evidence-backed feature inventory](./capability-inventory.md)
 - [Editorial plan and capability allocation](./editorial-plan.md)
+
+## DEV-oriented educational draft
+
+[10 Fields, 1,023 Combinations: How KiaraDB Handles Changing Filters](../kiaradb-composable-filters-devto.md)
+is a separate tutorial adaptation, not another scheduled promotional release.
+It teaches the subset calculation, demonstrates ALL versus ANY with exclusions
+and interval containment, and checks results against a plain JavaScript filter.
+It omits the campaign CTA and includes an explicit AI disclosure.
+
+**It is not pre-approved for DEV.** The platform's published AI guidelines,
+rechecked on 2026-10-24, restrict promoting a business, program, or course.
+An educational treatment of KiaraDB does not guarantee an exemption, and
+disclosure alone does not resolve the issue. Before publishing, review it
+personally and confirm with DEV whether this product-centered tutorial is
+acceptable. If not, use an owned blog or another suitable destination instead.
+Do not remove the disclosure or misrepresent its authorship.
+
+Suggested editor setup, only if appropriate to publish:
+
+- Tags: `javascript`, `database`, `tutorial`, `webdev`.
+- Use the title field for the article heading; paste the body without a duplicate H1.
+- Upload the existing [schema/index/query PNG](../images/field-agnostic-java-ts.png),
+  which this tutorial intentionally reuses, and replace the local image path.
+- Retain the image caption and AI disclosure; select an accurate AI-disclosure
+  tier for the final authorship process, not "Hand Written."
+- Add the author's true KiaraDB affiliation, if applicable.
+- Set a canonical URL only if a real original publication already exists.
 
 ## Suggested release sequence
 
@@ -90,8 +117,8 @@ Participate genuinely; do not manufacture testimonials, engagement, or comments.
 
 Suggested meta description:
 
-> See how KiaraDB prepares searchable fields, combines tags and ranges, and
-> reduces manual index setup for read-mostly Java and TypeScript applications.
+> Ten fields, 1,023 combinations: see how KiaraDB uses per-field indexes for
+> advanced in-memory filtering without manually creating composite indexes.
 
 Suggested eight tags, subject to the editor's available tags:
 

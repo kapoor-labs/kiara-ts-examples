@@ -45,6 +45,26 @@ are implementation choices, not the reader's primary reason to care.
 | C09 | Trie representation and diagnostic inspection | Inspect prepared structure and learn how shared paths represent repeated values | Tested: bounded trie serialization in [query tests](../../tests/query.test.ts); inspected TS builds a trie plus per-field indexes; Java-doc discusses prefix dedup and field order. Do not equate implementations or infer measured compression |
 | C10 | Zero runtime dependencies in the TS library | Embed the library without an additional runtime dependency graph | Inspected: installed package manifest. The playground separately depends on Monaco, Papa Parse, and Vite; the Java library is not covered by this claim |
 
+### Architecture clarification for the flagship
+
+Follow-up source inspection on 2026-10-24 confirmed Java's hash-based per-field
+inverted indexes in [Store.java](https://github.com/kapoorlabs/kiara/blob/develop/src/main/java/com/kapoorlabs/kiara/domain/Store.java)
+and specialized interval trees in [SearchableRange.java](https://github.com/kapoorlabs/kiara/blob/develop/src/main/java/com/kapoorlabs/kiara/domain/SearchableRange.java).
+The latter releases its temporary loading array after preparing the tree.
+This supplements C01/C09; Java tests were still not executed.
+
+"One index per field" describes the logical indexing unit, not a guarantee of
+one physical structure: auxiliary ordered keys, collection indexes, and trie
+data can coexist. TS 1.1.0 uses maps, sorted numeric entries, and range entries,
+not the same interval-tree implementation.
+
+For 10 fields there are `2^10 - 1 = 1,023` nonempty subsets, of which 1,013
+contain multiple fields. This illustrates a hypothetical lookup-per-subset
+design, not a requirement of key-value databases, a memory ratio, or a speed
+benchmark. [Redis Search](https://redis.io/docs/latest/develop/ai/search-and-query/)
+already supports rich querying. Redis-like responsiveness is a goal to measure,
+not a verified cross-engine performance result.
+
 ## B. Advanced filters that deserve more visibility
 
 | ID | Distinguishable characteristic | What the reader gains | Evidence and scope |

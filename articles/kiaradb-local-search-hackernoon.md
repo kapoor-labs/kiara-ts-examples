@@ -1,58 +1,61 @@
-# Search Any Field Combination Without Managing Composite Indexes
+# What If a Redis-Style Cache Could Answer SQL-Style Queries?
 
-Your users choose the next filter combination. You should not have to design a composite index for each one.
-KiaraDB prepares searchable fields once, then lets you combine equality, numeric bounds, collection requirements, and stored-range queries.
-This walkthrough shows what automatic indexing removes from application code, what advanced filters make possible, and which responsibilities remain yours.
+Key lookups are simple. Searching by status, score, tags, and ranges needs more machinery.
+KiaraDB brings advanced filtering to prepared, in-memory data without composite indexes for each field combination.
+Here is how per-field indexes and shared data structures avoid that combinatorial setup, with cache-like responsiveness as the goal.
 
 ![A schema becomes internal indexes that support several combinations of query conditions, with Java and TypeScript implementations.](./images/field-agnostic-java-ts.png)
 
-## The interesting problem is changing questions
+## Ten fields, 1,023 possible combinations
 
-A search interface might start with a status filter. Later, users want a score
-band, two required tags, an excluded value, and a point inside a stored interval.
+A plain key-value lookup retrieves a known key. To support changing filters,
+an application might maintain additional lookup keys: one for status, another
+for status plus region, another for status plus score.
 
-The query shapes multiply even though the underlying records have barely changed.
-Hand-written filtering branches become difficult to maintain; manually planned
-indexes can become another design concern.
+Suppose it materializes a separate lookup index for **every nonempty subset of
+10 searchable fields**:
 
-This is not a claim that other databases need an index for every query.
-PostgreSQL, for example, supports [combining multiple indexes](https://www.postgresql.org/docs/current/indexes-bitmap-scans.html)
-and documents [multicolumn index trade-offs](https://www.postgresql.org/docs/current/indexes-multicolumn.html).
-The question is whether KiaraDB's preparation model reduces setup for your workload.
+**2^10 - 1 = 1,023 combinations: 10 single-field and 1,013 multi-field.**
 
-KiaraDB's useful proposition is **search over combinations of declared fields
-without manually defining a composite index for each combination**.
+KiaraDB instead indexes those **10 searchable fields individually**, reusing
+their structures across combinations. No 1,013 composite indexes to define or
+maintain. This counts field subsets, not distinct values, index bytes, or a
+measured memory-saving ratio.
 
-It has Java and TypeScript implementations. That makes the idea relevant to
-services and applications in different stacks, not just browser interfaces.
-This article demonstrates the TypeScript library; it does not assume identical
-APIs in Java.
+That explosion is a consequence of the hypothetical per-combination design,
+not a requirement of every key-value database. Alternatives include intersecting
+per-field indexes; PostgreSQL documents both [index combination](https://www.postgresql.org/docs/current/indexes-bitmap-scans.html)
+and [multicolumn index trade-offs](https://www.postgresql.org/docs/current/indexes-multicolumn.html).
 
-## Automatic indexing is not index-free storage
+And Redis is not limited to key lookup: [Redis Search](https://redis.io/docs/latest/develop/ai/search-and-query/)
+already offers rich queries and secondary indexing. The title is an analogy
+for KiaraDB's appeal: cache-oriented, in-memory access with SQL-style predicates,
+not SQL syntax, joins, or proven Redis-equivalent latency.
 
-In the TypeScript library, you define field types, load records, and call
-`prepare()`. Preparation creates internal per-field indexes and a trie
-representation. Fields are searchable unless excluded with `ignoreIndex`.
+## Per-field indexes, shared structures, no composite indexes
 
-The application does not issue a separate index-creation command for each
-combination of conditions.
+KiaraDB's indexing unit is the searchable field, not the combination. Think
+**one logical index per field**, with type-specific supporting structures,
+rather than one physical structure doing every job.
 
-That distinction matters. KiaraDB still needs a schema, normalization, preparation
-time, and memory for records and indexes. It cannot search undeclared properties
-or make every workload independent of dataset size.
+The Java implementation combines hash-based inverted indexes, a shared-prefix
+trie, ordered keys, and specialized interval trees for range queries. Shared
+trie prefixes avoid repeating common paths; range trees discard their temporary
+loading arrays after preparation. These are concrete memory-conscious choices,
+alongside avoiding per-combination lookup structures.
 
-The Java project documents a trie-based, read-oriented model with shared-prefix
-deduplication. The TypeScript implementation also maintains per-field indexes;
-do not assume the two engines share identical internals or memory behavior.
+TypeScript 1.1.0 uses per-field maps, ordered numeric entries, range entries,
+and a trie; it does not share all Java internals. Define types, load records,
+and call `prepare()`. Fields are searchable unless marked `ignoreIndex`.
+
+Both implementations remove manual composite-index design, not schema,
+preparation time, or memory costs. This walkthrough uses the TypeScript API.
 
 ## Define once, ask different questions
 
-Install the tested package with `npm install @kapoorlabs/kiara-ts@1.1.0`.
-Save this JavaScript as `combined-search.mjs`, then run
-`node combined-search.mjs`. No TypeScript compilation is needed.
-
-The three fictional records make the behavior easy to inspect. They are not
-evidence of throughput or scale.
+Install `npm install @kapoorlabs/kiara-ts@1.1.0`, save as `combined-search.mjs`,
+and run `node combined-search.mjs`. These fictional records demonstrate behavior,
+not throughput.
 
 ```javascript
 import {
@@ -96,8 +99,7 @@ Expected output:
 The second query adds three requirements to the first. No new index definition,
 per-combination store, or custom tag parser appears between the searches.
 
-The ID is excluded from filtering but still available in the typed projection.
-That is an indexing choice, not an authorization boundary.
+The unindexed ID remains available in projections, not hidden by access control.
 
 ## The less obvious capabilities
 
@@ -116,9 +118,8 @@ Basic equality is only the starting point:
 Operators have field-specific semantics. In particular, containing two points
 in separate intervals does not prove coverage of the gap between them.
 
-The TypeScript schema can describe text, numbers, longs, booleans, and enums.
-Use schema builders for plain records, or standard TypeScript decorators for
-annotated models. Both feed the same TS engine.
+TypeScript supports text, numbers, longs, booleans, and enums through schema
+builders or standard decorators.
 
 ## Help users express the query
 
@@ -133,18 +134,18 @@ Separately, keyword retrieval supports English stemming and one-edit typo
 correction alongside hard filters. Dictionary prefix suggestions help users
 complete words; record retrieval remains a separate operation.
 
-These are inspectable, deterministic tools, not unrestricted natural-language
-understanding. Nor should the TypeScript interpreter be presented as an API
-verified in the Java implementation.
+These are deterministic tools, not unrestricted natural-language understanding
+or an interpreter API verified in Java.
 
 ## What the design asks you to trade
 
 KiaraDB is a fit to evaluate for read-mostly, prepared datasets. Preparation is
 not free, and the data and search structures must fit your memory budget.
 
-Measure loading, preparation, memory, query latency, and returned-row counts
-separately. Automatic indexing does not establish constant-time searches or
-prove superiority to a database you already use.
+The goal is advanced search with cache-like responsiveness. Establish that
+for your workload: measure preparation, memory, latency, and returned-row counts.
+A Redis comparison needs equivalent queries, datasets, deployment conditions,
+and concurrency; a single-key GET is not a multi-condition search benchmark.
 
 For a tiny list and one condition, a loop may be simpler. For transactional
 writes, joins, durable storage, or access control, retain systems designed for
@@ -153,20 +154,16 @@ those responsibilities.
 TypeScript `StoreLoader.replaceAll` can prepare a replacement while retaining
 the previous store. Your application validates it and controls activation.
 Worker APIs are available when browser execution needs to leave the UI thread;
-workers are an integration option, not the product's defining identity.
+they are an integration option, not the product's identity.
 
-The TS package has zero runtime dependencies of its own. The example playground
-has separate UI and CSV dependencies, which should not be confused with the
-library's footprint.
+The TS library has zero runtime dependencies; the playground's UI and CSV
+dependencies are separate.
 
 ## Evaluate the combination, not a slogan
 
-The meaningful test is to take one real dataset and add the filter combination
-your current interface makes awkward.
-
-Can you express it as conditions? Can you inspect the results? What changes
-when you add another field? The answers tell you more than a universal
-performance headline would.
+Take one real dataset and add the filter combination your interface makes
+awkward. Inspect the results and measure the cost: that is the useful test of
+cache-oriented access with richer search.
 
 Try your own CSV and the guided queries in the
 [companion playground](https://github.com/kapoor-labs/kiara-ts-examples),
