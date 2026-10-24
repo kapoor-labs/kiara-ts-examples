@@ -6,11 +6,15 @@
   "scripts": {
     "dev": "vite",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "test:parts:coverage": "node --experimental-strip-types --experimental-test-coverage --test-coverage-include=**/parts-finder.ts --test-coverage-lines=100 --test-coverage-branches=100 --test-coverage-functions=100 --test tests/parts-finder.test.ts",
+    "test:business:coverage": "node --experimental-strip-types --experimental-test-coverage --test-coverage-include=**/business-demos.ts --test-coverage-lines=100 --test-coverage-branches=100 --test-coverage-functions=100 --test tests/business-demos.test.ts",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "data:capacitors": "node scripts/import-capacitors.mjs",
+    "data:retail": "node scripts/import-retail.mjs"
   },
   "dependencies": {
-    "@kapoorlabs/kiara-ts": "^1.0.0",
+    "@kapoorlabs/kiara-ts": "^1.1.0",
     "monaco-editor": "^0.55.1",
     "papaparse": "^5.5.3"
   },

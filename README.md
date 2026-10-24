@@ -8,8 +8,11 @@ When you start this repo locally, it opens a browser portal where you can:
 - write a search script and run it immediately,
 - learn from 44 guided query examples with explanations and expected results,
 - get query-aware IntelliSense, JavaScript diagnostics, and field-name suggestions,
+- try complete airport type-ahead and hierarchical runtime-configuration applications,
+- explore seven business labs covering product discovery, keyword retrieval, sets,
+  stored ranges, safe refresh, Web Workers, and local CSV import,
 - inspect the result payload,
-- upload your own dataset JSON and run the same scripting flow.
+- import your own CSV or dataset JSON and run the same scripting flow.
 
 ## Quick start
 
@@ -19,6 +22,170 @@ npm run dev
 ```
 
 Open the local URL shown by Vite (usually `http://localhost:5173`).
+Use Node.js 24 or newer for the test and coverage commands. This project now
+requires the published `@kapoorlabs/kiara-ts` **1.1.0 or later in the 1.x series**.
+
+## Application examples and articles
+
+Choose an application under **Application examples** in the sidebar. Selecting
+a dataset returns to the existing query editor and its guided examples.
+
+### Seven business feature labs
+
+These examples demonstrate different capabilities rather than putting the same
+filter form over seven datasets. Each includes a working interface, the actual
+query/interpretation, a contextual code excerpt, and explicit application/library
+boundaries.
+
+| Sidebar example | Try it | What Kiara contributes |
+|---|---|---|
+| **E-commerce discovery** | `bag` with `price<5GBP sold>=100`: 115 products; try an observed market, sort, typo preset, or browse all | Keyword best-match combined with interpreted numeric clauses and collection conditions |
+| **Typo-tolerant keyword search** | `latern` corrects to `lantern` (20 products); `decorating` matches decoration through English stemming (115 products) | Correction, stemming, and best positive token-match retrieval, with inspectable metadata |
+| **Integration compatibility** | Require OAuth and Webhooks; toggle ALL to ANY; exclude On-prem agent | `CONTAINS_ALL`, `CONTAINS_EITHER`, and `NOT_CONTAINS` |
+| **Operating-envelope finder** | Cover -40 through 125 Celsius (14 components); try 150 (one) or 200 (none) | Point containment in a stored numeric range, including both endpoints of a requested interval |
+| **Safe catalog refresh** | Reject a broken replacement, prepare a valid price change, query the unchanged active store, then activate | `StoreLoader.replaceAll` prepares a distinct store; the application swaps the store and interpreter |
+| **Main thread vs Web Worker** | Run the same repetition count in each mode; compare projections, elapsed time, and observed animation frames; cancel a worker run | Real `BrowserWorkerClient`, `attachBrowserWorkerHost`, progress events, and request cancellation |
+| **Bring your own CSV** | Drop a CSV or load the entire retail sample, review types/indexing, prepare, search, select projected columns, export, or open the IntelliSense editor | Prepared typed stores, conditions, and projections |
+
+The retail examples share a cached prepared store containing **3,788 genuine
+product codes** derived from **541,909 UCI Online Retail transactions**.
+It is an attributed CC BY 4.0 projection, not generated sample merchandise:
+[provenance, transformations, and reproduction](./public/data/README-retail.md).
+Prices are historical observed positive GBP minima/maxima from 2010-2011,
+**not live prices**. Units sold are not stock, and observed countries are not
+shipping availability. No product images, categories, or inventory are invented.
+Keyword totals explicitly override Kiara's default 100-result keyword limit;
+only the rendered cards/table are bounded. Product discovery rejects keyword
+truncation and unresolved strict filters rather than showing partial answers.
+
+The compatibility checker intentionally uses **eight authored fictional fixtures**,
+not real vendor capabilities or a fabricated large dataset. The operating-range
+demo retains all **16,802** source component rows, but only **15** have supported
+temperature specifications; **16,787 remain missing**, not guessed or padded.
+The source temperature text is retained. Covering both endpoints works here
+because each parsed operating range is a single contiguous interval, not a
+general scheduling/interval-overlap engine.
+
+CSV import is local and memory-only, limited to **10 MiB, 50,000 rows, and 100
+columns**. Review `text`, `number`, `boolean`, or comma-separated text collection
+types and whether each column is indexed. Inference examines all rows and keeps
+leading-zero and unsafe-integer identifiers as text. Invalid CSV, duplicate or
+reserved headers, malformed values, and unsafe numeric conversions report errors.
+Boolean columns require `true`/`false`; empty, `null`, and `\N` cells become null.
+Changing the mapping requires preparation again. Opening the query editor
+preserves the imported schema and provides field-aware IntelliSense.
+CSV parsing, file handling, download/export, sorting, and DOM interactions are
+application code, not database features. There is no upload or persistent storage.
+
+Worker measurements exclude initial worker-store preparation but include message
+round trips. They use the same conditions, projection, and genuine rows as the
+main-thread adapter; no synthetic rows inflate the workload. The main-thread
+animation may pause in background tabs. Worker execution is not promised to be
+faster, and cancellation is not claimed to preempt arbitrary synchronous code.
+
+The [business engines and import helpers](./src/business-demos.ts),
+[interactive views](./src/business-demo-view.ts), and
+[worker entry point](./src/retail.worker.ts) are separate from the original apps.
+Run the focused engine coverage gate:
+
+```bash
+npm run test:business:coverage
+```
+
+It enforces **100% line, branch, and function coverage** for
+`src/business-demos.ts`. Browser checks exercise the views and real worker
+separately; this is not a claim of 100% DOM or worker-entry coverage.
+
+Publication-ready roundup articles:
+- [Medium: Beyond the Search Box: 7 Business Features Built with Kiara](./articles/seven-business-features-with-kiara-medium.md)
+- [LinkedIn: Seven Business Features, Not Seven Variations of a Search Box](./articles/seven-business-features-with-kiara-linkedin.md)
+
+### Filterless Parts Finder — Kiara 1.1.0
+
+One input replaces hunting through a large parametric filter panel. The
+[finder engine](./src/parts-finder.ts) uses the published `QueryInterpreter` and
+`editQueryFragment` APIs; the [view](./src/parts-finder-view.ts) renders editable
+chips, ambiguity choices, matching components, generated conditions, and
+traditional controls backed by the same input state.
+
+Try these queries or the preset buttons:
+
+| Input | Demonstrates |
+|---|---|
+| `ceramic samsung X7R` | Cross-field value recognition and declared value aliases; 396 matches |
+| `cap:10uF voltage>=25V` | Field alias, unit conversion, comparison; 272 matches |
+| `cap:10000nF voltage>=25V` | Equivalent units produce the same 272 matches |
+| `cap:1uF..10uF voltage>=25V` | Inclusive range; 1,233 matches |
+| `25V` | Explicit choice of allowable, rated, or AC voltage |
+| `stock<0` | Valid no-match query |
+
+Keep fields, quantities, and operators contiguous; quote multiword values.
+Bare `0603` can match either a package code or a stock quantity of 603, so it
+requires confirmation. The UI materializes a confirmed choice as an explicit
+field expression, preventing stale confirmations after edits.
+Unknown/invalid fragments block the entire search, not just one clause.
+Clear all returns the complete candidate set. At most 50 records are rendered;
+the displayed match count covers the full store.
+
+The underlying CSV contains **all 16,802 records** from a pinned historical
+JLCParts category, with **22 fields, 18 searchable**. It does not invent 100
+specifications or pad a smaller dataset. See the
+[data provenance and normalization notes](./public/data/README-capacitors.md).
+Stock is a **February 23, 2024 snapshot**, not live availability. Source outliers
+and missing specifications do not establish component suitability.
+
+Run the focused coverage gate:
+
+```bash
+npm run test:parts:coverage
+```
+
+It enforces **100% lines, branches, and functions** for the new finder engine,
+including the shared traditional-filter and chip-expression helpers. The DOM
+view is browser-smoke-tested separately; this is not a claim of 100% DOM coverage.
+
+Publication-ready articles:
+- [Medium: Stop Making Users Find the Right Filter](./articles/filterless-parts-finder-medium.md)
+- [LinkedIn: Your Users Know the Value. Why Must They Find the Filter?](./articles/filterless-parts-finder-linkedin.md)
+
+### Airport type-ahead
+
+The [type-ahead engine](./src/typeahead.ts) loads all **7,698 airport CSV rows**
+through the same prepared-store cache as the query playground. It builds reusable
+word dictionaries for airport codes, names, countries, and their combined scope.
+It completes the final whitespace-separated word, then tries one-edit correction
+only when no prefix matches. Dictionary suggestions are words, not airport
+records; selecting one separately runs `KeywordSearch.bestMatch`.
+
+Try `lon`, `jfk`, `united sta`, and `londn`. Up/Down and Enter select a suggestion;
+Escape or blur closes the list. Inputs are bounded to 128 characters and ten
+whitespace-separated words, with limits of one through ten results.
+
+Read the publication-ready tutorial:
+[Build an Airport Type-Ahead Engine with Kiara and TypeScript](./articles/airport-typeahead-with-kiara-typescript.md).
+
+### Runtime hierarchical configuration
+
+The [configuration engine](./src/runtime-config.ts) implements the original
+article's country/city/airline surcharge scenarios: its six code-example rules
+plus the worldwide Delta rule described in its prose. These seven intentional
+configuration rules are separate from the bulk CSV datasets.
+
+Null dimensions are wildcards. Structured conditions retrieve applicable rules,
+then the count of non-null dimensions determines specificity. Equal top scores
+produce an explicit ambiguity, not an arbitrary winner. Missing optional context
+only matches wildcard dimensions; no match is also explicit. Surcharge units are
+application-defined.
+
+Edit JSON, apply a complete validated replacement, inspect the candidate trace
+and revision, or use the exact/fallback/global/no-match/tie presets.
+`StoreLoader.replaceAll` prepares a new store before activation; rejected updates
+retain the old store and revision. Updates live in page memory only, not durable
+storage. The TypeScript keyword `minimumMatch` is deliberately not used as a
+substitute for Java's different hierarchical matching behavior.
+
+Read the publication-ready tutorial:
+[Build a Runtime Configuration Engine with Kiara and TypeScript](./articles/runtime-config-with-kiara-typescript.md).
 
 ## Real CSV datasets
 
@@ -32,8 +199,8 @@ needed at runtime:
 | Movies | [movie_metadata.csv](./public/data/movie_metadata.csv) | 5,043 |
 | Airports | [airports.csv](./public/data/airports.csv) | 7,698 |
 
-There are no small built-in fixtures, generated records, repeated records to
-inflate counts, or sampled subsets. Source duplicates and missing values are
+The bulk datasets contain no generated records, repeated records to inflate
+counts, or sampled subsets. Source duplicates and missing values are
 preserved. All rows are parsed and indexed; a script's `limit` only caps the
 returned results. The schema inspector displays just the first three rows to
 keep the UI manageable, and labels that preview explicitly.

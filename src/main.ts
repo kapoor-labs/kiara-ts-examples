@@ -3,6 +3,9 @@ import { NormalizationProfile, type FieldOptions, type Store } from "@kapoorlabs
 import { createScriptEditor } from "./editor.ts";
 import { EXAMPLES, exampleScript } from "./examples.ts";
 import { evaluateScript, executeScriptRequest, type AnyRow } from "./query.ts";
+import { createApplicationExamples, type ApplicationExample } from "./application-examples.ts";
+import { PARTS_DEFINITION } from "./parts-finder.ts";
+import { FEATURE_DEMOS, RETAIL_DEFINITION } from "./business-demos.ts";
 import {
   BUILT_IN_DATASETS, buildStore, parseDatasetCsv,
   type DatasetDefinition, type FieldKind, type NormalizationProfileValue,
@@ -16,11 +19,19 @@ app.innerHTML = `
       <h1>Kiara TS Examples</h1>
       <p class="muted">Explore thousands of real CSV records with guided Kiara queries.</p>
       <nav id="dataset-menu" class="dataset-menu" aria-label="Dataset menu"></nav>
-      <button id="upload-dataset" class="secondary-button" type="button">Bring your own data</button>
+      <h2 class="sidebar-heading">Application examples</h2>
+      <nav id="application-menu" class="dataset-menu" aria-label="Application examples">
+        <button class="menu-item" type="button" data-example="typeahead">Airport type-ahead</button>
+        <button class="menu-item" type="button" data-example="runtime-config">Runtime configuration</button>
+        <button class="menu-item" type="button" data-example="parts-finder">Filterless Parts Finder</button>
+        ${FEATURE_DEMOS.map((demo) => `<button class="menu-item" type="button" data-example="${demo.id}">${demo.title}</button>`).join("")}
+      </nav>
+      <button id="upload-dataset" class="secondary-button" type="button">Import dataset JSON</button>
       <input id="upload-file" type="file" accept="application/json,.json" hidden />
       <div class="byod-note">Upload JSON with <code>fields</code> and <code>rows</code>. See README for format.</div>
     </aside>
     <main class="content">
+      <div id="query-playground" class="playground-panels">
       <section class="card">
         <h2 id="dataset-title">Loading Movies...</h2>
         <p id="dataset-description"></p>
@@ -53,6 +64,8 @@ app.innerHTML = `
         <h2>Result</h2>
         <pre id="result-output"></pre>
       </section>
+      </div>
+      <div id="application-examples" class="application-panels" hidden></div>
     </main>
   </div>
 `;
@@ -74,6 +87,8 @@ const runScriptButton = requireElement<HTMLButtonElement>("#run-script");
 const resetScriptButton = requireElement<HTMLButtonElement>("#reset-script");
 const statusText = requireElement<HTMLElement>("#status-text");
 const resultOutput = requireElement<HTMLElement>("#result-output");
+const queryPlayground = requireElement<HTMLElement>("#query-playground");
+const applicationMenu = requireElement<HTMLElement>("#application-menu");
 
 let uploadedDataset: PlaygroundDataset | undefined;
 let activeDataset: PlaygroundDataset | undefined;
@@ -81,12 +96,38 @@ let activeStore: Store<AnyRow> | undefined;
 let selectedId = BUILT_IN_DATASETS[0].id;
 let loading = false;
 let loadController: AbortController | undefined;
-const cache = new Map<string, { dataset: PlaygroundDataset; store: Store<AnyRow>; milliseconds: number }>();
+let selectedApplication: ApplicationExample | undefined;
+interface PreparedDataset {
+  readonly dataset: PlaygroundDataset;
+  readonly store: Store<AnyRow>;
+  readonly milliseconds: number;
+}
+const cache = new Map<string, PreparedDataset>();
+const applications = createApplicationExamples(requireElement("#application-examples"), async (signal) => {
+  const definition = BUILT_IN_DATASETS.find((dataset) => dataset.id === "airports");
+  if (!definition) throw new Error("The airport CSV dataset is not configured.");
+  return (await getPreparedDataset(definition, signal)).store;
+}, async (signal) => (await getPreparedDataset(PARTS_DEFINITION, signal)).store,
+async (signal) => (await getPreparedDataset(RETAIL_DEFINITION, signal)).store,
+selectDataset);
 
 import.meta.hot?.dispose(() => {
   loadController?.abort();
+  applications.dispose();
   scriptEditor.dispose();
 });
+
+for (const example of ["typeahead", "runtime-config", "parts-finder", ...FEATURE_DEMOS.map((demo) => demo.id)] as const) {
+  requireElement<HTMLButtonElement>(`[data-example="${example}"]`).addEventListener("click", () => {
+    loadController?.abort();
+    selectedApplication = example;
+    setLoading(false);
+    queryPlayground.hidden = true;
+    applications.show(example);
+    renderDatasetMenu();
+    renderApplicationMenu();
+  });
+}
 
 runScriptButton.addEventListener("click", () => {
   if (loading || !activeStore) return;
@@ -129,14 +170,50 @@ function renderDatasetMenu(): void {
   for (const dataset of datasets) {
     const button = document.createElement("button");
     button.type = "button";
-    button.className = dataset.id === selectedId ? "menu-item active" : "menu-item";
+    button.className = !selectedApplication && dataset.id === selectedId ? "menu-item active" : "menu-item";
     button.textContent = `${dataset.label}${dataset.recordCount ? ` (${dataset.recordCount.toLocaleString()})` : ""}`;
     button.addEventListener("click", () => void selectDataset(dataset));
     datasetMenu.append(button);
   }
 }
 
+function renderApplicationMenu(): void {
+  applicationMenu.querySelectorAll<HTMLButtonElement>("[data-example]").forEach((button) => {
+    const active = button.dataset.example === selectedApplication;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
+}
+
+async function getPreparedDataset(
+  definition: DatasetDefinition | PlaygroundDataset, signal: AbortSignal,
+): Promise<PreparedDataset> {
+  const prepared = definition.id === "uploaded-dataset" ? undefined : cache.get(definition.id);
+  if (prepared) return prepared;
+  const started = performance.now();
+  let dataset: PlaygroundDataset;
+  if ("rows" in definition) {
+    dataset = definition;
+  } else {
+    if (!definition.csvFile) throw new Error(`No CSV file configured for ${definition.label}.`);
+    const response = await fetch(`${import.meta.env.BASE_URL}data/${definition.csvFile}`, { signal });
+    if (!response.ok) throw new Error(`Could not load ${definition.csvFile}: HTTP ${response.status}.`);
+    const csv = await response.text();
+    signal.throwIfAborted();
+    dataset = parseDatasetCsv(definition, csv);
+  }
+  signal.throwIfAborted();
+  const store = buildStore(dataset);
+  const result = { dataset, store, milliseconds: performance.now() - started };
+  cache.set(definition.id, result);
+  return result;
+}
+
 async function selectDataset(definition: DatasetDefinition | PlaygroundDataset): Promise<void> {
+  selectedApplication = undefined;
+  applications.hide();
+  queryPlayground.hidden = false;
+  renderApplicationMenu();
   loadController?.abort();
   const controller = new AbortController();
   loadController = controller;
@@ -145,26 +222,7 @@ async function selectDataset(definition: DatasetDefinition | PlaygroundDataset):
   renderDatasetMenu();
   setStatus(`Loading and indexing ${definition.label}...`, false);
   try {
-    let prepared = definition.id === "uploaded-dataset" ? undefined : cache.get(definition.id);
-    if (!prepared) {
-      const started = performance.now();
-      let dataset: PlaygroundDataset;
-      if ("rows" in definition) {
-        dataset = definition;
-      } else {
-        if (!definition.csvFile) throw new Error(`No CSV file configured for ${definition.label}.`);
-        const url = `${import.meta.env.BASE_URL}data/${definition.csvFile}`;
-        const response = await fetch(url, { signal: controller.signal });
-        if (!response.ok) throw new Error(`Could not load ${definition.csvFile}: HTTP ${response.status}.`);
-        const csv = await response.text();
-        if (controller.signal.aborted) return;
-        dataset = parseDatasetCsv(definition, csv);
-      }
-      if (controller.signal.aborted) return;
-      const store = buildStore(dataset);
-      prepared = { dataset, store, milliseconds: performance.now() - started };
-      cache.set(definition.id, prepared);
-    }
+    const prepared = await getPreparedDataset(definition, controller.signal);
     if (controller.signal.aborted) return;
     if (definition.id === "uploaded-dataset") uploadedDataset = prepared.dataset;
     applyDataset(prepared.dataset, prepared.store, prepared.milliseconds);

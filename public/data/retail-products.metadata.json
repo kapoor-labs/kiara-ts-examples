@@ -1,0 +1,8 @@
+{
+  "source": "https://archive.ics.uci.edu/static/public/352/data.csv",
+  "sourceSha256": "a2f79bbdd4463df6db8a3f5a50b9c980ae8f645a370bf5e2c0d6097f9e817b05",
+  "transactions": 541909,
+  "includedTransactions": 525462,
+  "products": 3788,
+  "csvSha256": "08ee2f3bd9316c8f158c0dc78b00e171ee0302b6c3797d0aa1ea259d2f9d7253"
+}
