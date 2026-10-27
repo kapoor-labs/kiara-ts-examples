@@ -146,6 +146,68 @@ Suggested editor setup, only if appropriate to publish:
 - Add the author's true KiaraDB affiliation, if applicable.
 - Set a canonical URL only if a real original publication already exists.
 
+## Benchmark article for developer communities
+
+[KiaraDB vs Fuse.js: Faster Queries or Faster Builds? A Side-by-Side Benchmark](../kiaradb-vs-fusejs-benchmark.md)
+is a neutral, third-person comparison of the two libraries only. It discloses
+that the author created KiaraDB and that the draft is AI-assisted, gives each
+library's advantages and limits equal space, and takes every number from
+[the generated benchmark report](../../docs/fuse-comparison.md).
+
+Before publishing:
+
+- **Commit and push** the benchmark scripts, report, and results. The article's
+  clone command and report link point to the `main` branch of
+  `kapoor-labs/kiara-ts-examples`, which does not contain them yet.
+- Numbers cited: typo search 1.95 ms vs 422/601 ms (tuned/default Fuse.js) at
+  100,000 products; KiaraDB faster in all 26 exact scenarios Fuse.js can express
+  (1.3×-515×); filtered typo search about 4×; build 4.3-7.5 s and 489-871 MB vs
+  about 0.3 s and 101-110 MB at 100,000 records (11-25× faster builds, 3-9× less
+  memory for Fuse.js). Rerun the benchmark and update these if the engine changes.
+- Deliberately excluded: the "lanterns" ratio (KiaraDB returned only two
+  records) and the as-you-type ratio (the engines return words versus records).
+- Upload the [cover PNG](../images/kiaradb-vs-fusejs.png) and keep the
+  disclosure line.
+
+## Launch article: introducing KiaraDB
+
+[Meet KiaraDB: Typo Search 200× Faster Than Fuse.js. It's Not Even Close.](../introducing-kiaradb-vs-fusejs.md)
+is the openly promotional companion to the neutral comparison. It introduces
+KiaraDB's strengths with one runnable snippet, then makes the bold claim on
+query speed only, and keeps a short "What the speed costs" section (build time,
+memory, snapshots, one-edit correction) so readers who open the report find no
+surprises.
+
+- Same prerequisite: **commit and push** the benchmark before publishing.
+- Numbers cited, all at 100,000 records against the faster Fuse.js
+  configuration: first 20 active 0.15 vs 75 ms (515×), stemming 1.0 vs 363 ms
+  (365×), typo 1.95 vs 422 ms (216×; the "200×" title), date equality 0.28 vs
+  45 ms (163×), three fields 0.37 vs 47 ms (128×), contains all of two tags 3.2 vs 40 ms (12×);
+  26 of 26 shared exact scenarios won, 24-65× per-dataset geometric mean; 66 of
+  92 scenarios Fuse.js cannot express; default Fuse.js 0 of 10 relevant on
+  `wireles lamp`; build 4.3 s / 489 MB vs 0.27 s / 110 MB, repaid after about
+  ten typo searches.
+- The snippet runs unchanged on kiara-ts 1.1.0 from npm; the benchmark used
+  1.2.0 from GitHub.
+- Upload the [hero PNG](../images/kiaradb-vs-fusejs-hero.png) as the cover
+  (the [speedup chart](../images/introducing-kiaradb.png) sits inside the
+  article) and keep the disclosure line. The same DEV and Reddit self-promotion rules apply, more
+  strictly here because the post is promotional.
+
+Channel notes:
+
+- **Owned blog, Hashnode, Medium:** suitable with the disclosure; Medium also
+  requires labeling AI-assisted text.
+- **DEV:** its AI guidelines restrict AI-assisted posts that promote a project.
+  Rewrite substantially in your own words, or confirm with DEV first.
+- **Reddit** (r/javascript, r/node, r/typescript): follow each subreddit's
+  self-promotion rules, post as the author, and answer questions personally.
+- **Hacker News:** submit the runnable repository as a Show HN only if you write
+  the post and comments yourself; HN rejects generated or AI-edited discussion.
+
+Suggested tags: `javascript`, `typescript`, `performance`, `search`,
+`benchmark`, `opensource`.
+
 ## Suggested release sequence
 
 This is a suggested cadence, not an automated posting schedule.

@@ -111,6 +111,10 @@ HackerNoon article:
 DEV-oriented tutorial draft (review platform rules before publishing):
 - [10 Indexes, 1,023 Filter Combinations: Build the Numbered-Tree Trick in JavaScript](./articles/kiaradb-composable-filters-devto.md)
 
+Benchmark article for developer communities (review platform rules before publishing):
+- [KiaraDB vs Fuse.js: Faster Queries or Faster Builds? A Side-by-Side Benchmark](./articles/kiaradb-vs-fusejs-benchmark.md)
+- [Meet KiaraDB: Typo Search 200× Faster Than Fuse.js. It's Not Even Close.](./articles/introducing-kiaradb-vs-fusejs.md)
+
 Campaign materials:
 - [Evidence-backed capability inventory](./articles/campaign/capability-inventory.md)
 - [Editorial plan and feature coverage](./articles/campaign/editorial-plan.md)
@@ -500,6 +504,56 @@ counts and source SHA-256 hashes, execute all 44 guided examples, and verify
 source values, projections, keyword metadata, derived helper semantics,
 dictionary behavior, malformed CSV handling, and every operator/secondary type.
 Monaco and its workers are bundled locally; the editor does not require a CDN.
+
+## Benchmark: KiaraDB and Fuse.js
+
+```bash
+npm run bench:fuse
+```
+
+This compares KiaraDB with [Fuse.js](https://www.fusejs.io/), using Fuse.js's
+default settings and a tuned configuration, across every KiaraDB search feature.
+Datasets:
+
+- the 3,788 real retail products;
+- deterministic synthetic **catalogs** (10,000 and 100,000 products) with text,
+  enum, boolean, nullable, decimal, long, string-list, and number-list fields;
+- deterministic synthetic **schedules** (10,000 and 100,000 events) with dates,
+  date-times, date lists, and numeric, prefixed, date, and date-time ranges,
+  single and as lists.
+
+Scenarios cover all 11 operators (`EQUAL` to `NOT_CONTAINS` and
+`CONTAINS_EITHER_INCLUDING_NULL`), multi-value equality, missing values, result
+limits, projection, value-discovering query interpretation with units, keyword
+best and minimum match, stemming, typo correction, filtered keyword search,
+as-you-type completion, and one-edit correction.
+
+Each dataset and engine runs in its own Node.js process, three times. The command
+regenerates the [report](./docs/fuse-comparison.md) and its
+[raw results](./benchmarks/fuse-comparison.json). The engines overlap only partly:
+
+- **Exact scenarios** have one correct answer, defined by an independent,
+  untimed plain-JavaScript implementation of KiaraDB's documented semantics. The
+  run fails if either library returns a wrong record.
+- **Fuse.js** runs only what it can express exactly: string equality, list
+  membership, and their `$and`/`$or` combinations. Everything else is reported as
+  unsupported and excluded from latency ratios.
+- **Text scenarios** rank differently in each engine and are reported with a
+  simple, documented quality metric, not as identical answers.
+
+Treat results as one machine's synthetic and historical-data measurements, and
+benchmark your own data. `BENCH_DATASETS`, `BENCH_RUNS`, and `BENCH_BUDGET_MS`
+adjust the run. `node scripts/benchmark-fuse.mjs --render` regenerates the report
+from saved results. `npm test` checks every scenario's agreement on smaller data
+without timing anything.
+
+In the recorded run, both libraries returned correct records for every scenario
+they support. KiaraDB's p50 latency was 24-65 times lower than Fuse.js on exact
+filters and 76-495 times lower on ranked text search (geometric means), ranging
+from 1.3× on two broad joined conditions to 515× on a small limit. Fuse.js built
+its index 11-25 times faster and used 3-9 times less memory: at 100,000 records,
+KiaraDB took 4.3-7.5 seconds and 489-871 MB, versus about 0.3 seconds and
+101-110 MB for Fuse.js.
 
 ## Build
 
