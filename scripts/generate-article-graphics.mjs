@@ -338,8 +338,8 @@ const artwork = [
   },
   {
     file: "kiaradb-vs-fusejs-hero", accent: "#64e0bf", number: "13", custom: true,
-    title: "Search showdown: KiaraDB beats Fuse.js",
-    description: "A fight-card hero image. Typo search over 100,000 products: Fuse.js took 422 milliseconds tuned and 601 with defaults; KiaraDB, crowned the winner, took 1.95 milliseconds, 216 times faster. A race strip shows KiaraDB finishing almost instantly while Fuse.js runs the full length. KiaraDB won 26 of 26 shared filter scenarios, was up to 515 times faster, and ran 66 scenarios Fuse.js cannot express.",
+    title: "Client-side search showdown: KiaraDB beats Fuse.js",
+    description: "A fight-card hero image for client-side search over 100,000 records. On typo search, Fuse.js took 422 milliseconds tuned and 601 with defaults; KiaraDB, crowned the winner, took 1.95 milliseconds, 216 times faster, and was up to 515 times faster on filters. A race strip shows KiaraDB finishing almost instantly while Fuse.js runs the full length. KiaraDB won 26 of 26 shared filter scenarios and ran 66 scenarios Fuse.js cannot express.",
     defs: `<linearGradient id="hero-bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#050d1a"/><stop offset="1" stop-color="#0a1c33"/></linearGradient>
 <linearGradient id="hero-loser" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#1a1f29"/><stop offset="1" stop-color="#262b33"/></linearGradient>
 <linearGradient id="hero-winner" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0f3b3d"/><stop offset="1" stop-color="#0d2a3a"/></linearGradient>
@@ -355,12 +355,12 @@ const artwork = [
         + text(x + 24, 725, big, 34, palette.mint, 800, 150) + text(x + 136, 721, small, 22, palette.muted, 500, 300) + "</g>";
       const crown = (x, y) => `<path d="M${x} ${y + 46} L${x} ${y + 8} L${x + 18} ${y + 26} L${x + 34} ${y} L${x + 50} ${y + 26} L${x + 68} ${y + 8} L${x + 68} ${y + 46} Z" fill="${GOLD}"/>`;
       return `<rect width="1600" height="840" fill="url(#hero-bg)"/>`
-        + center(800, 62, "TYPO SEARCH SHOWDOWN  ·  100,000 PRODUCTS", 24, palette.mint, 700, ' letter-spacing="4"')
+        + center(800, 62, "CLIENT-SIDE SEARCH SHOWDOWN  ·  100,000 RECORDS", 24, palette.mint, 700, ' letter-spacing="4"')
         // Loser corner
         + `<path d="M40 92 L812 92 L732 492 L40 492 Z" fill="url(#hero-loser)" stroke="#3a414d" stroke-width="2"/>`
         + text(90, 180, "Fuse.js", 60, "#aeb7c4", 700, 400)
         + text(90, 330, "422 ms", 132, FUSE, 800, 560)
-        + text(90, 390, "tuned  ·  601 ms with defaults", 28, "#8d97a5", 500, 560)
+        + text(90, 390, "typo search, tuned  ·  601 ms with defaults", 28, "#8d97a5", 500, 600)
         + text(90, 452, "Scores every record, every search.", 26, "#8d97a5", 400, 560)
         // Winner corner
         + `<ellipse cx="1190" cy="300" rx="420" ry="230" fill="url(#hero-glow)"/>`
@@ -370,12 +370,12 @@ const artwork = [
         + `<text x="900" y="336" font-size="150" fill="${palette.mint}" font-weight="800" filter="url(#hero-blur)" opacity="0.7">1.95 ms</text>`
         + text(900, 336, "1.95 ms", 150, palette.mint, 800, 620)
         + text(904, 410, "216× faster", 52, palette.ink, 800, 600)
-        + text(904, 458, "Indexes every field before you ask.", 26, "#b8e9dc", 400, 600)
+        + text(904, 458, "on typo search  ·  up to 515× on filters", 26, "#b8e9dc", 400, 600)
         // VS badge
         + `<circle cx="792" cy="292" r="74" fill="#081426" stroke="${palette.mint}" stroke-width="4"/>`
         + center(792, 314, "VS", 62, palette.ink, 900)
         // Race strip
-        + text(80, 548, "TIME TO ANSWER", 20, palette.muted, 700, 300)
+        + text(80, 548, "TIME TO ANSWER A TYPO SEARCH", 20, palette.muted, 700, 400)
         + text(80, 588, "KiaraDB", 26, palette.mint, 700, 200)
         + rect(260, 568, 8, 26, palette.mint, palette.mint, 4)
         + text(286, 590, "1.95 ms  ·  done", 24, palette.mint, 700, 400)

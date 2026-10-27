@@ -1,9 +1,9 @@
-# Meet KiaraDB: Typo Search 200× Faster Than Fuse.js. It's Not Even Close.
+# Meet KiaraDB: Client-Side Search Up to 500× Faster Than Fuse.js. It's Not Even Close.
 
-KiaraDB is an open-source, in-memory search engine for TypeScript and Java. Over 100,000 products, it answered a misspelled search in 1.95 ms. Fuse.js needed 422 ms.
+KiaraDB is an open-source, in-memory search engine for TypeScript and Java that runs in the browser or on the server. Over 100,000 products, it answered a misspelled search in 1.95 ms. Fuse.js, the popular fuzzy-search library, needed 422 ms.
 That was no outlier: KiaraDB won all 26 filter queries both libraries can run, by up to 515×, then handled 66 more that Fuse.js cannot express.
 
-![Typo search showdown over 100,000 products: Fuse.js 422 ms, KiaraDB 1.95 ms and the winner, 216 times faster. KiaraDB won 26 of 26 shared filter scenarios, was up to 515 times faster, and ran 66 queries Fuse.js cannot express.](./images/kiaradb-vs-fusejs-hero.png)
+![Client-side search showdown over 100,000 records: on typo search, Fuse.js took 422 ms and KiaraDB 1.95 ms, the winner at 216 times faster and up to 515 times faster on filters. KiaraDB won 26 of 26 shared filter scenarios and ran 66 queries Fuse.js cannot express.](./images/kiaradb-vs-fusejs-hero.png)
 
 *Written by KiaraDB's creator with AI assistance. Every number comes from an open benchmark you can rerun with one command.*
 

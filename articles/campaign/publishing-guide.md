@@ -171,17 +171,19 @@ Before publishing:
 
 ## Launch article: introducing KiaraDB
 
-[Meet KiaraDB: Typo Search 200× Faster Than Fuse.js. It's Not Even Close.](../introducing-kiaradb-vs-fusejs.md)
+[Meet KiaraDB: Client-Side Search Up to 500× Faster Than Fuse.js. It's Not Even Close.](../introducing-kiaradb-vs-fusejs.md)
 is the openly promotional companion to the neutral comparison. It introduces
 KiaraDB's strengths with one runnable snippet, then makes the bold claim on
 query speed only, and keeps a short "What the speed costs" section (build time,
 memory, snapshots, one-edit correction) so readers who open the report find no
-surprises.
+surprises. The title says "client-side search" rather than "typo search" to
+reach domain readers who filter structured data; "up to 500×" is the largest
+measured gain (515×), so do not shorten it to a flat "500× faster".
 
 - Same prerequisite: **commit and push** the benchmark before publishing.
 - Numbers cited, all at 100,000 records against the faster Fuse.js
-  configuration: first 20 active 0.15 vs 75 ms (515×), stemming 1.0 vs 363 ms
-  (365×), typo 1.95 vs 422 ms (216×; the "200×" title), date equality 0.28 vs
+  configuration: first 20 active 0.15 vs 75 ms (515×; the "up to 500×" title), stemming 1.0 vs 363 ms
+  (365×), typo 1.95 vs 422 ms (216×), date equality 0.28 vs
   45 ms (163×), three fields 0.37 vs 47 ms (128×), contains all of two tags 3.2 vs 40 ms (12×);
   26 of 26 shared exact scenarios won, 24-65× per-dataset geometric mean; 66 of
   92 scenarios Fuse.js cannot express; default Fuse.js 0 of 10 relevant on

@@ -113,7 +113,7 @@ DEV-oriented tutorial draft (review platform rules before publishing):
 
 Benchmark article for developer communities (review platform rules before publishing):
 - [KiaraDB vs Fuse.js: Faster Queries or Faster Builds? A Side-by-Side Benchmark](./articles/kiaradb-vs-fusejs-benchmark.md)
-- [Meet KiaraDB: Typo Search 200× Faster Than Fuse.js. It's Not Even Close.](./articles/introducing-kiaradb-vs-fusejs.md)
+- [Meet KiaraDB: Client-Side Search Up to 500× Faster Than Fuse.js. It's Not Even Close.](./articles/introducing-kiaradb-vs-fusejs.md)
 
 Campaign materials:
 - [Evidence-backed capability inventory](./articles/campaign/capability-inventory.md)
