@@ -12,7 +12,8 @@
     "preview": "vite preview",
     "data:capacitors": "node scripts/import-capacitors.mjs",
     "data:retail": "node scripts/import-retail.mjs",
-    "bench:fuse": "node scripts/benchmark-fuse.mjs"
+    "bench:fuse": "node scripts/benchmark-fuse.mjs",
+    "bench:native": "node scripts/benchmark-fuse.mjs --native"
   },
   "dependencies": {
     "@kapoorlabs/kiara-ts": "file:vendor/kapoorlabs-kiara-ts-1.1.1-search.0.tgz",

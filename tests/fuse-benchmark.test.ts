@@ -6,6 +6,7 @@ import {
   catalog, fuzzyPrecision, prefixPrecision, retailCatalog, schedule,
 } from "../scripts/fuse-benchmark/datasets.mjs";
 import { ENGINES, createMatcher, describe, referenceIds } from "../scripts/fuse-benchmark/engines.mjs";
+import { buildNativeFilter } from "../scripts/native-filter.ts";
 
 type Clause = { op: string; values?: unknown[] };
 type Workload = { id: string; kind: string; limit?: number; where?: Clause[]; interpret?: string; mode?: string; expected?: string };
@@ -15,6 +16,25 @@ const FUSE_OPS = new Set(["eq", "any", "all"]);
 const FUSE_TYPES = new Set(["text", "enum", "list", "date", "datetime", "dateList", "datetimeList"]);
 
 for (const dataset of [catalog(3000), schedule(3000), retailCatalog()]) {
+  test(`native Array.filter agrees in source order: ${dataset.name}`, () => {
+    const engine = buildNativeFilter(dataset);
+    const kiara = ENGINES.kiara.build(dataset);
+    for (const workload of dataset.workloads) {
+      const output = engine.run(workload);
+      if (workload.kind !== "exact" || workload.interpret) {
+        assert.equal(output, null, `${workload.id} is unsupported`);
+        continue;
+      }
+      assert.ok(output);
+      assert.deepEqual(output.ids, referenceIds(dataset, workload), `native ${workload.id}`);
+      assert.deepEqual(output.ids, kiara.run(workload).ids, `native vs KiaraDB ${workload.id}`);
+    }
+    assert.deepEqual(engine.run({ kind: "exact", where: [], limit: 0 }), { ids: [] });
+    assert.deepEqual(engine.run({ kind: "exact", where: [], limit: 2 }),
+      { ids: dataset.rows.slice(0, 2).map((row: { id: string }) => row.id) });
+    assert.throws(() => engine.run({ kind: "exact" }), /requires conditions/);
+  });
+
   test(`benchmark engines agree with the reference semantics: ${dataset.name}`, () => {
     const engines = Object.fromEntries(Object.entries(ENGINES).map(([name, engine]) => [name, engine.build(dataset)]));
     const matches = createMatcher(dataset);

@@ -505,6 +505,30 @@ source values, projections, keyword metadata, derived helper semantics,
 dictionary behavior, malformed CSV handling, and every operator/secondary type.
 Monaco and its workers are bundled locally; the editor does not require a CDN.
 
+## Benchmark: KiaraDB and native Array.filter
+
+Read the concise comparison:
+[kiara-ts vs Array.filter: When Is an Index Worth It?](./docs/kiara-ts-vs-array-filter.md)
+
+```bash
+npm run bench:native
+```
+
+Runs the same five datasets below against a native TypeScript `Array.filter`
+baseline, with three isolated runs per engine. Each query scans the full array,
+then applies the result limit and any projection; it uses no index or early exit.
+The schema-aware predicate matches the existing reference semantics. Exact
+results are checked for matching IDs, count, and source order. Query parsing,
+fuzzy matching, and dictionary features are not native filter capabilities and
+are excluded from shared latency ratios.
+
+The command writes a separate [report](./docs/native-filter-comparison.md) and
+[raw results](./benchmarks/native-filter-comparison.json), preserving the Fuse.js
+measurements. `BENCH_DATASETS`, `BENCH_RUNS`, and `BENCH_BUDGET_MS` also apply.
+Use `node scripts/benchmark-fuse.mjs --render --native` to render saved results.
+TypeScript's types are stripped by Node; filtering uses the native JavaScript
+runtime, not a distinct TypeScript execution engine.
+
 ## Benchmark: KiaraDB and Fuse.js
 
 ```bash
