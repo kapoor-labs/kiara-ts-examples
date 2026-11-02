@@ -428,6 +428,46 @@ const artwork = [
       }).join("");
     },
   },
+  {
+    file: "kiaradb-vs-array-filter", accent: "#64e0bf", number: "15",
+    heading: ["Array.filter scans every row.", "KiaraDB pays once, then skips most."],
+    sub: "Times faster than Array.filter at 10,000 and 100,000 records, one loss included.",
+    title: "KiaraDB versus Array.filter: speedup by dataset size and the cost of preparing indexes",
+    description: "Times faster than Array.filter at 10,000 and then 100,000 records: first 20 of 70,072 active products 69 then 748; three fields equal 72 then 122; one field equal 10 then 8.9; 17,605 broad matches 2.1 then 1.8; two stored ranges 1.4 at 10,000, while at 100,000 Array.filter was 2.2 times faster. At 100,000 products KiaraDB took 4.0 seconds and 477 MB to prepare; Array.filter needs neither.",
+    footer: "kiara-ts 1.2.1, median of three isolated Node.js runs, one machine. Reproduce with npm run bench:native.",
+    draw: () => {
+      const SMALL = "#47617e";
+      const LOSS = "#ff7b72";
+      const rows = [
+        ["First 20 of 70,072", 69, 748], ["Three fields equal", 72, 122], ["One field equal", 10, 8.9],
+        ["17,605 broad matches", 2.1, 1.8], ["Two stored ranges", 1.4, 0.45, "Array.filter 2.2× faster"],
+      ];
+      const width = (ratio) => ratio <= 1 ? 6 : Math.max(6, Math.round(400 * Math.log10(ratio) / 3));
+      const label = (ratio) => `${ratio.toLocaleString("en-US")}×`;
+      return card(80, 318, 960, 430,
+        text(110, 362, "TIMES FASTER THAN ARRAY.FILTER (LOG SCALE)", 22, palette.mint, 700, 620)
+        + rect(735, 347, 18, 18, SMALL, SMALL, 4) + text(762, 363, "10,000", 20, palette.muted, 600, 100)
+        + rect(870, 347, 18, 18, palette.mint, palette.mint, 4) + text(897, 363, "100,000", 20, palette.ink, 600, 110)
+        + rows.map(([name, small, large, loss], i) => {
+          const y = 412 + i * 68;
+          const color = loss ? LOSS : palette.mint;
+          return text(110, y + 8, name, 24, palette.ink, 600, 290)
+            + rect(410, y - 18, width(small), 16, SMALL, SMALL, 4)
+            + text(420 + width(small), y - 4, label(small), 18, palette.muted, 600, 150)
+            + rect(410, y + 4, width(large), 16, color, color, 4)
+            + text(420 + width(large), y + 18, loss ?? label(large), 20, color, 700, 300);
+        }).join(""), palette.mint)
+        + card(1080, 318, 440, 430,
+          text(1110, 362, "THE COST, 100,000 PRODUCTS", 22, "#f6bd70", 700, 380)
+          + text(1110, 420, "Prepare indexes", 24, palette.muted, 500, 380)
+          + text(1110, 470, "4.0 s", 52, "#f6bd70", 700, 380)
+          + text(1110, 530, "Extra memory", 24, palette.muted, 500, 380)
+          + text(1110, 580, "477 MB", 52, "#f6bd70", 700, 380)
+          + text(1110, 640, "Array.filter: neither.", 24, palette.ink, 600, 380)
+          + text(1110, 690, "Repaid after ~210", 24, palette.muted, 400, 380)
+          + text(1110, 722, "three-field queries.", 24, palette.muted, 400, 380));
+    },
+  },
 ];
 
 await mkdir(directory, { recursive: true });

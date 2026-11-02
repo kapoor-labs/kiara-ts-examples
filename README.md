@@ -111,6 +111,7 @@ DEV-oriented tutorial draft (review platform rules before publishing):
 - [10 Indexes, 1,023 Filter Combinations: Build the Numbered-Tree Trick in JavaScript](./articles/kiaradb-composable-filters-devto.md)
 
 Benchmark article for developer communities (review platform rules before publishing):
+- [KiaraDB vs Array.filter: When a Prepared Index Pays Off, and When It Doesn't](./articles/kiaradb-vs-array-filter.md)
 - [KiaraDB vs Fuse.js: Faster Queries or Faster Builds? A Side-by-Side Benchmark](./articles/kiaradb-vs-fusejs-benchmark.md)
 - [Meet KiaraDB: Client-Side Search Up to 3,800× Faster Than Fuse.js. It's Not Even Close.](./articles/introducing-kiaradb-vs-fusejs.md)
 
