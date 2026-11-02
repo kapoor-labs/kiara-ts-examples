@@ -289,7 +289,7 @@ const artwork = [
     heading: ["KiaraDB vs Fuse.js,", "measured side by side."],
     sub: "Faster queries on one side, faster index builds on the other. Every exact result verified.",
     title: "KiaraDB and Fuse.js benchmark: query latency and build time",
-    description: "Typo search over 100,000 products took 1.95 milliseconds in KiaraDB, 422 in tuned Fuse.js, and 601 in default Fuse.js. Building the indexes for the same 100,000 products took 4,286 milliseconds in KiaraDB and 266 in Fuse.js, which also used 110 MB of memory against KiaraDB's 489 MB.",
+    description: "Typo search over 100,000 products took 1.36 milliseconds in KiaraDB, 432 in tuned Fuse.js, and 630 in default Fuse.js. Building the indexes for the same 100,000 products took 4,046 milliseconds in KiaraDB and 233 in Fuse.js, which also used 110 MB of memory against KiaraDB's 477 MB.",
     footer: "One machine, synthetic and historical data, three isolated runs. Reproduce with npm run bench:fuse.",
     draw: () => {
       const KIARA = palette.mint;
@@ -304,29 +304,29 @@ const artwork = [
             + text(x + 30 + width + 18, y + 40, `${value.toLocaleString("en-US")} ${unit}`, 26, color, 700, 170);
         }).join(""));
       return chart(80, "TYPO SEARCH, 100,000 PRODUCTS (p50)",
-        [["KiaraDB", 1.95, KIARA], ["Fuse.js (tuned)", 422, FUSE], ["Fuse.js (defaults)", 601, FUSE]], "ms", 601)
+        [["KiaraDB", 1.36, KIARA], ["Fuse.js (tuned)", 432, FUSE], ["Fuse.js (defaults)", 630, FUSE]], "ms", 630)
         + chart(820, "INDEX BUILD, 100,000 PRODUCTS",
-          [["KiaraDB", 4286, KIARA], ["Fuse.js", 266, FUSE]], "ms", 4286)
-        + text(850, 680, "Memory after build: KiaraDB 489 MB, Fuse.js 110 MB", 24, palette.muted, 400, 640);
+          [["KiaraDB", 4046, KIARA], ["Fuse.js", 233, FUSE]], "ms", 4046)
+        + text(850, 680, "Memory after build: KiaraDB 477 MB, Fuse.js 110 MB", 24, palette.muted, 400, 640);
     },
   },
   {
     file: "introducing-kiaradb", accent: "#64e0bf", number: "12",
-    heading: ["Fuse.js: 422 ms.", "KiaraDB: 1.95 ms."],
+    heading: ["Fuse.js: 432 ms.", "KiaraDB: 1.36 ms."],
     sub: "Typo search over 100,000 products. Faster in all 26 filter queries both libraries can run.",
     title: "Introducing KiaraDB: query speed against Fuse.js",
-    description: "Typo search over 100,000 products took 422 milliseconds in tuned Fuse.js and 1.95 in KiaraDB. KiaraDB answered first-20 lists 515 times faster, stemmed search 365 times, typo search 216 times, and date equality 163 times faster. It won all 26 filter queries both libraries can run and handled 66 more that Fuse.js cannot express.",
+    description: "Typo search over 100,000 products took 432 milliseconds in tuned Fuse.js and 1.36 in KiaraDB. KiaraDB answered first-20 lists 3,845 times faster, stemmed search 2,937 times, typo search 318 times, and date equality 114 times faster. It won all 26 filter queries both libraries can run and handled 66 more that Fuse.js cannot express.",
     footer: "Median latency at 100,000 records, one machine, three isolated runs. Reproduce with npm run bench:fuse.",
     draw: () => {
-      const rows = [["First 20 active products", 515], ["Stemmed search", 365], ["Typo search", 216], ["Date equality", 163]];
+      const rows = [["First 20 active products", 3845], ["Stemmed search", 2937], ["Typo search", 318], ["Date equality", 114]];
       return card(80, 330, 860, 390,
         text(110, 378, "TIMES FASTER THAN FUSE.JS, 100,000 RECORDS", 23, palette.mint, 700, 800)
         + rows.map(([label, ratio], i) => {
           const y = 428 + i * 72;
-          const width = Math.round(560 * ratio / 515);
+          const width = Math.max(12, Math.round(560 * ratio / 3845));
           return text(110, y, label, 24, palette.ink, 600, 420)
             + rect(110, y + 12, width, 24, palette.mint, palette.mint, 6)
-            + text(110 + width + 18, y + 33, `${ratio}×`, 26, palette.mint, 700, 120);
+            + text(110 + width + 18, y + 33, `${ratio.toLocaleString("en-US")}×`, 26, palette.mint, 700, 120);
         }).join(""), palette.mint)
         + card(980, 330, 540, 390,
           text(1010, 378, "QUERY SCENARIOS", 23, palette.mint, 700, 480)
@@ -339,7 +339,7 @@ const artwork = [
   {
     file: "kiaradb-vs-fusejs-hero", accent: "#64e0bf", number: "13", custom: true,
     title: "Client-side search showdown: KiaraDB beats Fuse.js",
-    description: "A fight-card hero image for client-side search over 100,000 records. On typo search, Fuse.js took 422 milliseconds tuned and 601 with defaults; KiaraDB, crowned the winner, took 1.95 milliseconds, 216 times faster, and was up to 515 times faster on filters. A race strip shows KiaraDB finishing almost instantly while Fuse.js runs the full length. KiaraDB won 26 of 26 shared filter scenarios and ran 66 scenarios Fuse.js cannot express.",
+    description: "A fight-card hero image for client-side search over 100,000 records. On typo search, Fuse.js took 432 milliseconds tuned and 630 with defaults; KiaraDB, crowned the winner, took 1.36 milliseconds, 318 times faster, and was up to 3,845 times faster on filters. A race strip shows KiaraDB finishing almost instantly while Fuse.js runs the full length. KiaraDB won 26 of 26 shared filter scenarios and ran 66 scenarios Fuse.js cannot express.",
     defs: `<linearGradient id="hero-bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#050d1a"/><stop offset="1" stop-color="#0a1c33"/></linearGradient>
 <linearGradient id="hero-loser" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#1a1f29"/><stop offset="1" stop-color="#262b33"/></linearGradient>
 <linearGradient id="hero-winner" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0f3b3d"/><stop offset="1" stop-color="#0d2a3a"/></linearGradient>
@@ -352,25 +352,25 @@ const artwork = [
       const center = (x, y, value, size, color, weight = 700, extra = "") =>
         `<text x="${x}" y="${y}" font-size="${size}" fill="${color}" font-weight="${weight}" text-anchor="middle"${extra}>${escape(value)}</text>`;
       const stat = (x, big, small) => `<g data-box="${x} 676 450 74">${rect(x, 676, 450, 74, "#0e2236", palette.line, 14)}`
-        + text(x + 24, 725, big, 34, palette.mint, 800, 150) + text(x + 136, 721, small, 22, palette.muted, 500, 300) + "</g>";
+        + text(x + 24, 725, big, 34, palette.mint, 800, 150) + text(x + 44 + big.length * 19, 721, small, 22, palette.muted, 500, 300) + "</g>";
       const crown = (x, y) => `<path d="M${x} ${y + 46} L${x} ${y + 8} L${x + 18} ${y + 26} L${x + 34} ${y} L${x + 50} ${y + 26} L${x + 68} ${y + 8} L${x + 68} ${y + 46} Z" fill="${GOLD}"/>`;
       return `<rect width="1600" height="840" fill="url(#hero-bg)"/>`
         + center(800, 62, "CLIENT-SIDE SEARCH SHOWDOWN  ·  100,000 RECORDS", 24, palette.mint, 700, ' letter-spacing="4"')
         // Loser corner
         + `<path d="M40 92 L812 92 L732 492 L40 492 Z" fill="url(#hero-loser)" stroke="#3a414d" stroke-width="2"/>`
         + text(90, 180, "Fuse.js", 60, "#aeb7c4", 700, 400)
-        + text(90, 330, "422 ms", 132, FUSE, 800, 560)
-        + text(90, 390, "typo search, tuned  ·  601 ms with defaults", 28, "#8d97a5", 500, 600)
+        + text(90, 330, "432 ms", 132, FUSE, 800, 560)
+        + text(90, 390, "typo search, tuned  ·  630 ms with defaults", 28, "#8d97a5", 500, 600)
         + text(90, 452, "Scores every record, every search.", 26, "#8d97a5", 400, 560)
         // Winner corner
         + `<ellipse cx="1190" cy="300" rx="420" ry="230" fill="url(#hero-glow)"/>`
         + `<path d="M852 92 L1560 92 L1560 492 L772 492 Z" fill="url(#hero-winner)" stroke="${palette.mint}" stroke-width="3"/>`
         + `<g data-box="1330 112 200 52">${rect(1330, 112, 200, 52, GOLD, GOLD, 26)}${center(1430, 148, "WINNER", 28, "#1a1405", 800, ' letter-spacing="3"')}</g>`
         + crown(900, 128) + text(986, 176, "KiaraDB", 68, palette.ink, 800, 400)
-        + `<text x="900" y="336" font-size="150" fill="${palette.mint}" font-weight="800" filter="url(#hero-blur)" opacity="0.7">1.95 ms</text>`
-        + text(900, 336, "1.95 ms", 150, palette.mint, 800, 620)
-        + text(904, 410, "216× faster", 52, palette.ink, 800, 600)
-        + text(904, 458, "on typo search  ·  up to 515× on filters", 26, "#b8e9dc", 400, 600)
+        + `<text x="900" y="336" font-size="150" fill="${palette.mint}" font-weight="800" filter="url(#hero-blur)" opacity="0.7">1.36 ms</text>`
+        + text(900, 336, "1.36 ms", 150, palette.mint, 800, 620)
+        + text(904, 410, "318× faster", 52, palette.ink, 800, 600)
+        + text(904, 458, "on typo search  ·  up to 3,845× on filters", 26, "#b8e9dc", 400, 600)
         // VS badge
         + `<circle cx="792" cy="292" r="74" fill="#081426" stroke="${palette.mint}" stroke-width="4"/>`
         + center(792, 314, "VS", 62, palette.ink, 900)
@@ -378,14 +378,14 @@ const artwork = [
         + text(80, 548, "TIME TO ANSWER A TYPO SEARCH", 20, palette.muted, 700, 400)
         + text(80, 588, "KiaraDB", 26, palette.mint, 700, 200)
         + rect(260, 568, 8, 26, palette.mint, palette.mint, 4)
-        + text(286, 590, "1.95 ms  ·  done", 24, palette.mint, 700, 400)
+        + text(286, 590, "1.36 ms  ·  done", 24, palette.mint, 700, 400)
         + text(80, 638, "Fuse.js", 26, FUSE, 700, 200)
         + rect(260, 618, 1260, 26, "url(#hero-bar)", "url(#hero-bar)", 6)
-        + text(1384, 638, "422 ms", 24, "#1a1405", 800, 120)
+        + text(1384, 638, "432 ms", 24, "#1a1405", 800, 120)
         + stat(80, "26/26", "shared filter scenarios won")
-        + stat(575, "515×", "fastest win, first 20 results")
+        + stat(575, "3,845×", "fastest win, first 20")
         + stat(1070, "+66", "queries Fuse.js can't express")
-        + center(800, 800, "Median latency, 100,000 records, one machine, three isolated runs  ·  KiaraDB 1.2.0 vs Fuse.js 7.5.0  ·  npm run bench:fuse", 20, "#7f93a8", 400);
+        + center(800, 800, "Median latency, 100,000 records, one machine, three isolated runs  ·  KiaraDB 1.2.1 vs Fuse.js 7.5.0  ·  npm run bench:fuse", 20, "#7f93a8", 400);
     },
   },
   {

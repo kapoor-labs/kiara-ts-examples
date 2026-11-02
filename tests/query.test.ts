@@ -79,7 +79,7 @@ test("real movie values and both projection formats are accurate", () => {
   assert.deepEqual(run("movie-basic", "projection"), [{
     title: "Cast Away", rating: 7.7, imdbLink: rows[0].imdbLink,
   }]);
-  assert.deepEqual(run("movie-basic", "legacy"), [{ TITLE: "Cast Away", RATING: "7.7" }]);
+  assert.deepEqual(run("movie-basic", "legacy"), [{ TITLE: "Cast Away", RATING: "7.70" }]);
   const between = run("movie-basic", "between") as AnyRow[];
   assert.equal(between.length, 11);
   assert.ok(between.some((row) => row.title === "Cast Away"));
@@ -94,19 +94,18 @@ test("keyword examples preserve correction, scoring, stemming and truncation met
   const typo = run("movie-basic", "typo") as { results: AnyRow[]; correctedKeywords: object };
   assert.deepEqual(typo.correctedKeywords, { apolo: "apollo" });
   assert.deepEqual(typo.results.map((row) => row.title), ["Apollo 13", "Apollo 18"]);
-  for (const [id, count] of [["keyword-best", 2], ["keyword-minimum", 1]] as const) {
-    const result = run("movie-basic", id) as { results: AnyRow[] };
-    for (const row of result.results) {
-      const tags = String(row.tags).toLowerCase().split(",");
-      assert.equal(["adventure", "history"].filter((tag) => tags.includes(tag)).length, count);
-    }
+  const best = run("movie-basic", "keyword-best") as { results: AnyRow[] };
+  for (const row of best.results) {
+    const tags = String(row.tags).toLowerCase().split(",");
+    assert.equal(["adventure", "history"].filter((tag) => tags.includes(tag)).length, 2);
   }
   const stemmed = run("movie-basic", "stemming") as { results: AnyRow[]; correctedKeywords: object };
   assert.equal(stemmed.results[0].title, "Cast Away");
   assert.deepEqual(stemmed.correctedKeywords, {});
   const cap = run("movie-basic", "keyword-cap") as { truncated: boolean; usedKeywords: string[] };
   assert.equal(cap.truncated, true);
-  assert.deepEqual(cap.usedKeywords, ["adventure", "drama"]);
+  assert.deepEqual(cap.usedKeywords, ["Adventure", "Drama"]);
+  assert.deepEqual(run("movie-basic", "predict"), ["apollo", "apostle", "apocalypse", "apocalypto"]);
 });
 
 test("derived helpers preserve source facts and calendar-year precision", () => {
@@ -163,7 +162,7 @@ test("dictionary operations return words and respect optional filters", () => {
 
 test("all operators, field kinds and secondary types remain taught with real rows", () => {
   const examples = Object.values(EXAMPLES).flat();
-  assert.equal(examples.length, 44);
+  assert.equal(examples.length, 43);
   const operators = new Set(examples.flatMap((example) =>
     example.request.conditions?.map((condition) => condition.operator ?? Operator.EQUAL) ?? [],
   ));

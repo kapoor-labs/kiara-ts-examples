@@ -52,11 +52,15 @@ retain the development-candidate label **1.1.1-search.0**.
   do not establish an isolated preparation-heap peak.
 
 These synthetic comparisons are against TypeScript 1.1.0, **not Java or Redis**.
-The GitHub release notes report npm publication blocked. A direct public-registry
-check here failed its TLS handshake, so npm availability was not independently
-confirmed. Tutorials retain their 1.1.0 npm install pins and distinguish their
-candidate validation from registry availability. Recheck distribution before
-publication; do not advertise an unverified npm install command.
+
+## Java-compatible behavior in 1.2.1
+
+kiara-ts **1.2.1**, published on npm, aligns search results with Java Kiara and
+is checked by a live Java-vs-TypeScript contract. Tutorials install 1.2.1. For
+claims, note: spelling correction is opt-in per field (`oneEditAway`), follows
+one greedy trie path, and corrects stemmed fields to the stem; keyword matching
+is case-sensitive unless the field is `caseInsensitive`; `minimumMatch` returns
+rules containing only the entered keywords; predictions are breadth-first.
 
 ## The strongest campaign promise
 
@@ -128,9 +132,9 @@ not a verified cross-engine performance result.
 | C23 | Ambiguity as explicit candidate choices | Avoid guessing which field a shared value or unit belongs to | Tested: three voltage candidates and leading-zero package ambiguity in [finder tests](../../tests/parts-finder.test.ts); bare values mean equality, not an assumed minimum |
 | C24 | Strict execution, source spans, and editable fragments | Reject incomplete requests and build editable chips from the actual input | Tested: zero search calls for blocked input, serialization, and fragment rewrites in [finder tests](../../tests/parts-finder.test.ts); library provides results/edit helpers, application renders UI |
 | C25 | Keyword retrieval combined with structured conditions | Be forgiving about words while keeping hard requirements strict | Tested: [retail discovery](../../tests/business-demos.test.ts), [keyword-filter queries](../../tests/query.test.ts) |
-| C26 | One-edit correction and English stemming | Recover from a small spelling mistake or a related word form | Tested: `apolo`, `latern`, `surviving`, `decorating`; dictionary one-edit supports insertion/deletion/substitution, not transposition, and skips words of three characters or fewer |
+| C26 | One-edit correction and English stemming | Recover from a small spelling mistake or a related word form | Tested: `apolo`, `lanern`, `surviving`, `decorating`; correction requires `oneEditAway`/`predictable` on the field, follows one greedy trie path (an early typo such as `latern` is not corrected), supports insertion/deletion/substitution, not transposition, and skips words of three characters or fewer |
 | C27 | Reusable prefix dictionaries and field scoping | Build completion from the vocabulary actually present in the data | Tested: [type-ahead tests](../../tests/typeahead.test.ts); suggestions are words, record retrieval is separate. TS application builds the dictionary explicitly; metadata alone does not wire an input |
-| C28 | Inspectable token scores, corrections, and truncation | Explain why results appeared and expose query limits | Tested: [keyword metadata assertions](../../tests/query.test.ts); TS `bestMatch` chooses the highest positive token-match group; `minimumMatch` chooses the lowest positive group, not a minimum threshold |
+| C28 | Inspectable token scores, corrections, and truncation | Explain why results appeared and expose query limits | Tested: [keyword metadata assertions](../../tests/query.test.ts); `bestMatch` returns rows matching the most keywords in Java Kiara's combination order; `minimumMatch` keeps only rows whose text values are exactly the matched keywords, for config/log rules |
 
 ## D. Operational and integration features
 
@@ -164,12 +168,13 @@ not a verified cross-engine performance result.
    broad queries and overlapping intervals can still require substantial work.
 4. Distinguish shared structured-search architecture from identical internals,
    APIs, or behavior. TS `QueryInterpreter` is verified here; a Java equivalent
-   is not. Keyword ranking and minimum-match remain explicitly TS-scoped.
+   is not. Keyword search and minimum-match follow Java Kiara since 1.2.1.
 5. The interpreter covers scalar text/enum/number/boolean and string collections.
    Dates, longs, numeric collections, and stored ranges use structured APIs.
    No implicit OR, grouping, arbitrary prose, or general unit registry.
 6. Keywords and suggestions do not enforce semantic intent. Best-match is not
-   "every query word must occur," and minimum-match is not a confidence threshold.
+   "every query word must occur," and minimum-match is not a confidence
+   threshold: it returns only rows containing exactly the entered keywords.
 7. Endpoint containment proves continuous coverage only for one contiguous
    stored interval, not a union of disjoint intervals.
 8. Prepared records should be treated as read-only. Replacement is not

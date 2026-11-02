@@ -19,14 +19,12 @@ contracts. Correcting a keyword is not permission to relax a numeric bound.
 
 ## A complete example
 
-Install `@kapoorlabs/kiara-ts@1.1.0`, save the following as `text-search.mjs`,
+Install `@kapoorlabs/kiara-ts@1.2.1`, save the following as `text-search.mjs`,
 and run `node text-search.mjs`. The records are fictional; this is a behavior
 demonstration, not a speed test.
 
-The same output was verified on **1.1.1-search.0**, the optimized candidate behind
-[the 1.2.0 GitHub release](https://github.com/kapoorlabs/kiara-ts/releases/tag/v1.2.0).
-Its release notes report npm publication blocked, so the install remains 1.1.0.
-These are TypeScript keyword semantics, not a promise of identical Java results.
+Since 1.2.1, keyword search follows the Java Kiara behavior. Spelling correction
+applies only to fields that opt in with `oneEditAway`, as `title` does here.
 
 ```javascript
 import {
@@ -84,10 +82,12 @@ The correction helps discovery without admitting the archived or lower-scored ro
 `DictionaryTrie.predict` returns words. `KeywordSearch.bestMatch` returns records
 and matching metadata.
 
-For autocomplete, try prefix predictions first. If none exist, the dictionary's
+For autocomplete, try prefix predictions first. They come back breadth-first,
+so shorter words appear before longer ones. If none exist, the dictionary's
 `getOneEditCandidate` can provide a correction candidate. It supports one
 insertion, deletion, or substitution, not a transposition, and does not correct
-inputs of three characters or fewer.
+inputs of three characters or fewer. Like Java Kiara, it follows a single path
+through the dictionary, so a typo near the start of a word may not be corrected.
 
 Build dictionaries once and reuse them. Separate dictionaries can scope
 suggestions to a particular field. Selecting a suggestion should trigger a
@@ -100,14 +100,14 @@ The dictionary also cannot suggest vocabulary absent from the source records.
 Improving the data and choosing appropriate fields remain part of building
 useful search.
 
-## Know what the keyword score means
+## Know what the keyword match means
 
-TypeScript `bestMatch` selects the highest positive query-token-match group.
-It does not guarantee that every input word occurs.
+`bestMatch` returns the records matching the most query words. It does not
+guarantee that every input word occurs.
 
-`minimumMatch` selects the lowest positive group. Despite its name, it is not
-"at least this many matches" and should not be used as an automatic policy
-precedence engine.
+`minimumMatch` keeps only best-match records whose text values are exactly the
+matched words, nothing more. It is built for configuration or log rules where a
+blank field means "any", not for ranking catalog records.
 
 Use structured conditions for mandatory requirements. The keyword APIs are
 lexical retrieval, not semantic understanding or an intent classifier.
@@ -118,8 +118,8 @@ The response includes used keywords, matched keywords, corrections, and a
 truncation indicator.
 
 Use that metadata to explain a correction or warn that an input exceeded the
-keyword cap. The default cap is ten distinct keywords; the default keyword
-result limit is 100. A bounded response is not a total-count measurement.
+keyword cap. The default cap is ten distinct keywords. Without a `limit`, every
+matching record is returned, so pass one for search boxes.
 
 Stemming is opt-in for appropriate fields. It connects English word forms,
 not arbitrary concepts or every language.

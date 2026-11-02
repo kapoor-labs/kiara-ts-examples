@@ -21,11 +21,11 @@ const operations: Record<Operation, string> = {
   queryAll: "Return full rows in load order.",
   search: "AND together structured conditions.",
   projection: "Select fields and preserve original value types.",
-  legacyProjection: "Uppercase keys with string/null values.",
-  keywordBestMatch: "Return rows with the highest positive keyword score.",
-  keywordMinimumMatch: "Return rows with the lowest positive keyword score.",
-  predict: "Dictionary prefix predictions (words, not records).",
-  oneEditAway: "One-edit dictionary candidate or null.",
+  legacyProjection: "Uppercase keys with stored string/null values; shared projected values appear once.",
+  keywordBestMatch: "Return rows matching the most keywords (Java keyword-to-field order on ties).",
+  keywordMinimumMatch: "Return best-match rows containing only the matched keywords.",
+  predict: "Breadth-first dictionary predictions (words, not records).",
+  oneEditAway: "Greedy one-edit dictionary candidate or null.",
   diagnostics: "Inspect store state, schema, and trie diagnostics.",
 };
 

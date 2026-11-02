@@ -6,7 +6,7 @@ When you start this repo locally, it opens a browser portal where you can:
 
 - query all 5,043 movies or 7,698 airports from real CSV files,
 - write a search script and run it immediately,
-- learn from 44 guided query examples with explanations and expected results,
+- learn from 43 guided query examples with explanations and expected results,
 - get query-aware IntelliSense, JavaScript diagnostics, and field-name suggestions,
 - try complete airport type-ahead and hierarchical runtime-configuration applications,
 - explore seven business labs covering product discovery, keyword retrieval, sets,
@@ -22,13 +22,12 @@ npm run dev
 ```
 
 Open the local URL shown by Vite (usually `http://localhost:5173`).
-Use Node.js 24 or newer for the test and coverage commands. This project now
-uses the local **1.1.1-search.0** optimized-search candidate from the
-[vendored package](./vendor/kapoorlabs-kiara-ts-1.1.1-search.0.tgz). `npm install`
-uses that tarball; it does not require an unpublished npm version to exist.
-The package contains its execution/benchmark documentation. The
-[implementation plan](./docs/kiara-ts-search-optimization-plan.md) records the
-scope and compatibility requirements. No npm release is implied.
+Use Node.js 24 or newer for the test and coverage commands. This project uses
+`@kapoorlabs/kiara-ts` **1.2.1** from npm, whose search behavior follows the
+Java Kiara reference; see the library's
+[1.2.1 migration notes](https://github.com/kapoorlabs/kiara-ts/blob/main/CHANGELOG.md).
+The [implementation plan](./docs/kiara-ts-search-optimization-plan.md)
+records the earlier optimization scope.
 
 ## Application examples and articles
 
@@ -44,8 +43,8 @@ boundaries.
 
 | Sidebar example | Try it | What Kiara contributes |
 |---|---|---|
-| **E-commerce discovery** | `bag` with `price<5GBP sold>=100`: 115 products; try an observed market, sort, typo preset, or browse all | Keyword best-match combined with interpreted numeric clauses and collection conditions |
-| **Typo-tolerant keyword search** | `latern` corrects to `lantern` (20 products); `decorating` matches decoration through English stemming (115 products) | Correction, stemming, and best positive token-match retrieval, with inspectable metadata |
+| **E-commerce discovery** | `bag` with `price<5GBP sold>=100`: 113 products; try an observed market, sort, typo preset, or browse all | Keyword best-match combined with interpreted numeric clauses and collection conditions |
+| **Typo-tolerant keyword search** | `lanern` corrects to `lantern` (18 products); `decorating` matches decoration through English stemming (115 products). Like Java Kiara, correction follows one trie path, so an early typo such as `latern` is not corrected | Correction, stemming, and best-match retrieval, with inspectable metadata |
 | **Integration compatibility** | Require OAuth and Webhooks; toggle ALL to ANY; exclude On-prem agent | `CONTAINS_ALL`, `CONTAINS_EITHER`, and `NOT_CONTAINS` |
 | **Operating-envelope finder** | Cover -40 through 125 Celsius (14 components); try 150 (one) or 200 (none) | Point containment in a stored numeric range, including both endpoints of a requested interval |
 | **Safe catalog refresh** | Reject a broken replacement, prepare a valid price change, query the unchanged active store, then activate | `StoreLoader.replaceAll` prepares a distinct store; the application swaps the store and interpreter |
@@ -113,7 +112,7 @@ DEV-oriented tutorial draft (review platform rules before publishing):
 
 Benchmark article for developer communities (review platform rules before publishing):
 - [KiaraDB vs Fuse.js: Faster Queries or Faster Builds? A Side-by-Side Benchmark](./articles/kiaradb-vs-fusejs-benchmark.md)
-- [Meet KiaraDB: Client-Side Search Up to 500× Faster Than Fuse.js. It's Not Even Close.](./articles/introducing-kiaradb-vs-fusejs.md)
+- [Meet KiaraDB: Client-Side Search Up to 3,800× Faster Than Fuse.js. It's Not Even Close.](./articles/introducing-kiaradb-vs-fusejs.md)
 
 Campaign materials:
 - [Evidence-backed capability inventory](./articles/campaign/capability-inventory.md)
@@ -177,9 +176,10 @@ Publication-ready articles:
 The [type-ahead engine](./src/typeahead.ts) loads all **7,698 airport CSV rows**
 through the same prepared-store cache as the query playground. It builds reusable
 word dictionaries for airport codes, names, countries, and their combined scope.
-It completes the final whitespace-separated word, then tries one-edit correction
-only when no prefix matches. Dictionary suggestions are words, not airport
-records; selecting one separately runs `KeywordSearch.bestMatch`.
+It completes the final whitespace-separated word, breadth-first (shorter words
+first), then tries one-edit correction only when no prefix matches. Dictionary
+suggestions are words, not airport records; selecting one separately runs
+`KeywordSearch.bestMatch`.
 
 Try `lon`, `jfk`, `united sta`, and `londn`. Up/Down and Enter select a suggestion;
 Escape or blur closes the list. Inputs are bounded to 128 characters and ten
@@ -205,8 +205,8 @@ Edit JSON, apply a complete validated replacement, inspect the candidate trace
 and revision, or use the exact/fallback/global/no-match/tie presets.
 `StoreLoader.replaceAll` prepares a new store before activation; rejected updates
 retain the old store and revision. Updates live in page memory only, not durable
-storage. The TypeScript keyword `minimumMatch` is deliberately not used as a
-substitute for Java's different hierarchical matching behavior.
+storage. Keyword `minimumMatch` is not used: the engine ranks rules by explicit
+specificity and reports ties, so precedence stays under application control.
 
 Read the publication-ready tutorial:
 [Which Rule Won? Query, Explain, and Refresh Configuration with KiaraDB](./articles/runtime-config-with-kiara-typescript.md).
@@ -300,15 +300,16 @@ run scripts and dataset-provided `defaultScript` values that you trust.
 
 | Dataset | Examples | What you learn |
 |---|---:|---|
-| Movies | 36 | All 11 operators, numeric boundaries, AND filters, source genre/actor collections, native decimal scores, projections, keyword scoring/correction/stemming, truncation, dictionary predictions, nulls, enums, booleans, long-valued gross, ignored indexes, diagnostics, and all date/range secondary types through labeled derived helpers |
+| Movies | 35 | All 11 operators, numeric boundaries, AND filters, source genre/actor collections, native decimal scores, projections, keyword best match/correction/stemming, truncation, dictionary predictions, nulls, enums, booleans, long-valued gross, ignored indexes, diagnostics, and all date/range secondary types through labeled derived helpers |
 | Airports | 8 | Exact IATA-code/country filters, AND conditions, projections, exclusions, keyword search, and dictionary autocomplete over thousands of real names |
 
 All five field kinds and all twelve secondary types are represented. Every
 lesson has an explanation and an expected result. The ignored-index movie
 example deliberately throws a validation error to demonstrate what not to query.
-Schema options such as `oneEditAway` and `predictable` are metadata; the dictionary
-examples explicitly call dictionary APIs rather than presenting these flags as
-record-search operators.
+The `oneEditAway` and `predictable` schema options enable keyword spelling
+correction on movie titles and airport fields. The dictionary examples call
+dictionary APIs directly rather than presenting these flags as record-search
+operators.
 
 The movie store uses NATIVE normalization to preserve decimal ratings. The
 airport store uses JAVA normalization, matching Kiara's default; its fields are
@@ -453,17 +454,24 @@ Use the **Bring your own data** button and upload a JSON file in this format:
 
 Structured searches and projections require at least one condition. Conditions
 are ANDed; the default operator is `EQUAL`. `BETWEEN` uses inclusive
-`lowerValue` and `upperValue`. Scalar enums use equality, not `CONTAINS_EITHER`.
+`lowerValue` and `upperValue`. Scalars also accept ordered comparisons,
+`CONTAINS_EITHER` and `CONTAINS_ALL`; only collections and ranges accept
+`NOT_CONTAINS`. Conditions run in schema field order, so a later invalid
+condition is skipped once an earlier field matches nothing.
 
 Keyword requests accept a string or array of phrases in `input`, optional
 `keywordFields`, `conditions`, `limit`, and `maxKeywords` (default 10).
-`minimumMatch` selects rows with the **lowest positive score**, not a minimum
-keyword threshold. Inspect `matchedKeywords`, `correctedKeywords`, `usedKeywords`,
-and `truncated` in the result.
+`bestMatch` returns rows matching the most keywords. `minimumMatch` keeps those
+rows only when their populated non-numeric values are exactly the matched
+keywords. It is designed for configuration or log rules where blank fields are
+wildcards, so the movie lessons demonstrate `bestMatch` instead. Keywords match
+case-sensitively unless the field is `caseInsensitive`, and spelling correction
+applies only to `oneEditAway`/`predictable` fields. Inspect `matchedKeywords`,
+`correctedKeywords`, `usedKeywords`, and `truncated` in the result.
 
 Dictionary requests accept a string `input`, optional `keywordFields`, and
 optional structured `conditions`; `predict` also accepts `limit`. They return
-words or a candidate/null, not matching records.
+words (breadth-first) or a candidate/null, not matching records.
 
 ### Features used outside the query editor
 
@@ -500,7 +508,7 @@ npm run build
 ```
 
 The regression tests parse and index both complete CSVs, check exact record
-counts and source SHA-256 hashes, execute all 44 guided examples, and verify
+counts and source SHA-256 hashes, execute all 43 guided examples, and verify
 source values, projections, keyword metadata, derived helper semantics,
 dictionary behavior, malformed CSV handling, and every operator/secondary type.
 Monaco and its workers are bundled locally; the editor does not require a CDN.
@@ -529,6 +537,36 @@ Use `node scripts/benchmark-fuse.mjs --render --native` to render saved results.
 TypeScript's types are stripped by Node; filtering uses the native JavaScript
 runtime, not a distinct TypeScript execution engine.
 
+To measure a locally built library without replacing the installed dependency,
+use a separate output name (PowerShell):
+
+```powershell
+$env:BENCH_KIARA_MODULE = (Resolve-Path '..\Kiara-ts\dist\index.js').Path
+$env:BENCH_OUTPUT_NAME = 'native-filter-optimized'
+npm run bench:native
+node scripts\benchmark-fuse.mjs --render --native
+Remove-Item Env:BENCH_KIARA_MODULE, Env:BENCH_OUTPUT_NAME
+```
+
+Build the library first. `BENCH_KIARA_MODULE` selects its compiled entry point;
+`BENCH_OUTPUT_NAME` selects both report and JSON basenames and is required for
+a module override. Use a new name rather than overwriting historical reports.
+These overrides also apply to the Fuse benchmark.
+
+The [unreleased optimized-engine report](./docs/native-filter-optimized.md)
+and [fresh baseline repeat](./docs/native-filter-baseline-repeat.md)
+are separate from the historical comparison. To compare the installed package
+and a candidate's existing behavior, including errors, limits, projections and
+keyword metadata:
+
+```powershell
+node scripts\check-search-candidate.mjs '..\Kiara-ts\dist\index.js'
+```
+
+This is TS-to-TS differential validation, so it reports intentional differences
+between pre-1.2.1 packages and the Java-compatible 1.2.1 behavior. Java parity
+itself is checked in the library with `npm run test:oracle:live`.
+
 ## Benchmark: KiaraDB and Fuse.js
 
 ```bash
@@ -549,8 +587,10 @@ Datasets:
 Scenarios cover all 11 operators (`EQUAL` to `NOT_CONTAINS` and
 `CONTAINS_EITHER_INCLUDING_NULL`), multi-value equality, missing values, result
 limits, projection, value-discovering query interpretation with units, keyword
-best and minimum match, stemming, typo correction, filtered keyword search,
-as-you-type completion, and one-edit correction.
+best match, stemming, typo correction, filtered keyword search, as-you-type
+completion, and one-edit correction. Keyword minimum match is not benchmarked:
+under Java semantics it only matches rows containing nothing but the keywords,
+which these product records never do.
 
 Each dataset and engine runs in its own Node.js process, three times. The command
 regenerates the [report](./docs/fuse-comparison.md) and its
@@ -571,13 +611,12 @@ adjust the run. `node scripts/benchmark-fuse.mjs --render` regenerates the repor
 from saved results. `npm test` checks every scenario's agreement on smaller data
 without timing anything.
 
-In the recorded run, both libraries returned correct records for every scenario
-they support. KiaraDB's p50 latency was 24-65 times lower than Fuse.js on exact
-filters and 76-495 times lower on ranked text search (geometric means), ranging
-from 1.3× on two broad joined conditions to 515× on a small limit. Fuse.js built
-its index 11-25 times faster and used 3-9 times less memory: at 100,000 records,
-KiaraDB took 4.3-7.5 seconds and 489-871 MB, versus about 0.3 seconds and
-101-110 MB for Fuse.js.
+In the recorded 1.2.1 run, both libraries returned correct records for every
+scenario they support. KiaraDB's p50 latency was 28-116 times lower than Fuse.js
+on exact filters and 276-1639 times lower on ranked text search (geometric means
+per dataset). Fuse.js built its index 13-26 times faster and used 3-8 times less
+memory: at 100,000 records, KiaraDB took 4.0-6.7 seconds and 477-761 MB, versus
+about 0.2-0.3 seconds and 101-110 MB for Fuse.js.
 
 ## Build
 

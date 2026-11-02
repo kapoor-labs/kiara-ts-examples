@@ -21,6 +21,10 @@ implementing and maintaining that query layer yourself.
 
 ## What the benchmark found
 
+These figures were measured on kiara-ts **1.2.1**. Earlier reports for
+pre-release engines are kept in the repository history rather than silently
+replaced.
+
 We compared both approaches across 86 exact-query scenarios: real retail data
 and deterministic synthetic catalogs and schedules. Each engine ran in three
 isolated processes, with warmup queries before measurement. All shared results
@@ -28,70 +32,58 @@ agreed on matching IDs, counts, and source order.
 
 | Dataset | Rows | Aggregate query speedup with kiara-ts |
 |---|---:|---:|
-| Retail | 3,788 | 8.9x |
-| Catalog | 10,000 | 7.1x |
-| Catalog | 100,000 | 5.8x |
-| Schedule | 10,000 | 3.7x |
-| Schedule | 100,000 | 3.5x |
+| Retail | 3,788 | 8.6x |
+| Catalog | 10,000 | 14x |
+| Catalog | 100,000 | 22x |
+| Schedule | 10,000 | 11x |
+| Schedule | 100,000 | 21x |
 
 These are geometric means of median-latency ratios, not guarantees for each
 query. Preparation time is excluded.
 
 For a concrete example, filtering 100,000 products by status, region, and brand
-returned 299 records in **0.351 ms with kiara-ts versus 18.57 ms with the array
+returned 299 records in **0.156 ms with kiara-ts versus 19.07 ms with the array
 baseline**.
 
-But `Array.filter` was faster in **15 of the 86 scenarios**. On the same catalog,
-selecting active products in the pro tier returned 17,605 records in
-**12.50 ms with the array versus 28.96 ms with kiara-ts**. Even a more selective
-rating-and-stars query favored the array: 7.65 ms versus 16.58 ms.
-An index does not make every query cheaper.
+`Array.filter` was still faster in **2 of the 86 scenarios**, both on the
+100,000-event schedule with stored-range conditions. Asking which capacity
+ranges contain both 100 and 900 returned 4,431 events in **9.31 ms with the
+array versus 20.55 ms with kiara-ts**. A four-condition query combining kind,
+city, a season range, and a capacity range favored the array too: 20.67 ms
+versus 27.48 ms. Broad matches also narrow the gap: selecting 17,605 active pro
+products was only 1.8x faster (6.4 versus 11.5 ms). An index does not make
+every query cheaper.
 
-## Should the advantage grow with more records?
+## Does the advantage grow with more records?
 
-**Saving more milliseconds is not the same as achieving a higher speedup
-ratio.** For `brand = brand-07`, the measurements were:
+Mostly, yes. From 10,000 to 100,000 records the aggregate speedup rose from
+14x to 22x on catalogs and from 11x to 21x on schedules.
 
-| Records | kiara-ts | Array.filter | Time saved | Speedup |
-|---|---:|---:|---:|---:|
-| 10,000 | 0.099 ms | 0.777 ms | 0.678 ms | 7.8x |
-| 100,000 | 1.789 ms | 8.699 ms | 6.910 ms | 4.9x |
+The clearest gains come from **result limits**. Returning the first 20 active
+products went from **69x to 748x faster**, and the first 100 products tagged
+gift or premium from **23x to 271x**. kiara-ts latency for that tag query stayed
+flat (0.071 versus 0.067 ms) while the array grew from 1.63 to 18.18 ms. Note
+that the array baseline scans everything before applying its limit; a custom
+loop that stops early would narrow those gaps.
 
-The absolute saving grew about tenfold, even though the ratio fell.
+Queries that return a fixed share of the data scale differently. For
+`brand = brand-07`, the speedup stayed near 9-10x (10x, then 8.9x), but the time
+saved per query grew tenfold, from 0.69 to 7.4 ms. The larger catalog has ten
+times more matches (206 became 2,018), and returning them still takes work.
 
-The larger catalog also produced more matches: **206 became 2,018**. These
-datasets keep similar value distributions, so increasing the record count
-increases candidate and result counts too. An index can narrow the search,
-but processing candidates and constructing results still takes work. Indexed
-execution is not automatically constant-time.
+Stored-range queries scaled worst. "Capacity range contains 100 and 900" took
+kiara-ts 0.55 ms at 10,000 events and 20.55 ms at 100,000, about 37 times
+longer for 10 times the data, while the array grew about 12 times. That is
+where the two remaining losses come from.
 
-Some bounded queries showed the expected growing advantage. Returning the
-first 20 active products went from **22x to 108x faster**; returning the first
-100 products in either of two regions went from **4.4x to 23x**. However, the
-array baseline scans everything before applying its limit. A custom loop that
-stops after enough matches could substantially reduce those advantages.
-
-There are also scaling concerns that result counts alone cannot explain.
-The query "tags contain gift or premium, first 100" returned 100 records at
-both sizes, but kiara-ts latency grew from **0.248 to 4.033 ms**, roughly 16x
-for 10x more data. The array grew from **1.729 to 18.585 ms**, roughly 11x.
-Some range and combined-condition queries also scaled poorly, pulling down
-the aggregate speedup.
-
-These timings identify behavior, not its internal cause. Candidate processing,
-allocations, ordering, and garbage collection would need profiling; none is
-established as the explanation here. Build time is excluded from these ratios.
-
-The measured conclusion is narrower than "bigger datasets mean bigger
-speedups": **absolute savings often grow, while relative gains depend on the
-query**. A dedicated scaling benchmark should separate fixed match counts,
-fixed match percentages, and limited results rather than combine them.
+These timings identify behavior, not its internal cause; candidate processing,
+allocations, and garbage collection would need profiling.
 
 ## What those faster queries cost
 
-The 100,000-product store took approximately **3.54 seconds to prepare** and
-retained **453 MB of additional heap**. The 100,000-event schedule took
-**6.47 seconds and 804 MB**.
+The 100,000-product store took approximately **4.0 seconds to prepare** and
+retained **477 MB of additional heap**. The 100,000-event schedule took
+**6.7 seconds and 761 MB**.
 
 The array baseline needed essentially no preparation or additional retained
 state beyond the already-loaded dataset. Those figures do not mean arrays use
@@ -109,7 +101,7 @@ predicate**, including normalization and missing-value handling. It is not a
 hand-tuned callback for every query. Specialized predicates or pre-normalized
 data could narrow the gap.
 
-Measurements used the local `1.1.1-search.0` candidate on Node.js 26.13.0, Windows,
+Measurements used kiara-ts 1.2.1 on Node.js 26.13.0, Windows,
 and an AMD EPYC 7763. They are not browser measurements or a promise about other
 versions. Fuzzy search and query interpretation are outside the shared comparison.
 

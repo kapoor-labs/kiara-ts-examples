@@ -34,8 +34,9 @@ export function createApplicationExamples(
         <h2>Airport type-ahead engine</h2>
         <p>Complete words from all 7,698 airport records: codes, airport names, and countries.
           Suggestions complete the last whitespace-separated word, not an entire airport record.</p>
-        <p class="muted">A prepared DictionaryTrie is reused as you type. If no prefix matches,
-          try a one-edit correction (for words longer than three characters).</p>
+        <p class="muted">A prepared DictionaryTrie is reused as you type. Suggestions are breadth-first,
+          so shorter words appear first. If no prefix matches, it tries a one-edit correction along a single
+          trie path (for words longer than three characters).</p>
         <p><a href="https://kapoorconsciousnes.medium.com/make-a-type-ahead-engine-with-kiara-in-5-minutes-456717441b40"
           target="_blank" rel="noopener noreferrer">Original Java article</a></p>
         <div class="example-controls">
@@ -64,7 +65,7 @@ export function createApplicationExamples(
       <section class="card">
         <h2>Matching airport records</h2>
         <p class="muted">Selecting a word runs a separate KeywordSearch.bestMatch over the selected fields.
-          Matching is token-scored, not an exact phrase filter. Some source airport names are city labels.</p>
+          Matching ranks rows by the most matched keywords, not an exact phrase filter. Some source airport names are city labels.</p>
         <pre id="typeahead-results" class="example-output">Choose a suggestion to search the airport records.</pre>
       </section>
     `;

@@ -1,8 +1,10 @@
 import Fuse from "fuse.js";
-import {
+import { pathToFileURL } from "node:url";
+const {
   Store, NormalizationProfile, Operator, KeywordSearch, DictionaryTrie, QueryInterpreter,
   createCondition, defineSchema, textField, numberField, booleanField, longField, enumField,
-} from "@kapoorlabs/kiara-ts";
+} = await import(process.env.BENCH_KIARA_MODULE
+  ? pathToFileURL(process.env.BENCH_KIARA_MODULE).href : "@kapoorlabs/kiara-ts");
 import { createHash } from "node:crypto";
 import { LIST_TYPES, RANGE_LIST_TYPES, RANGE_TYPES, fuzzyPrecision, prefixPrecision } from "./datasets.mjs";
 
@@ -98,7 +100,7 @@ const SECONDARY = {
   datetimeRangeList: "commaSeparatedDateTimeRanges",
 };
 
-function kiaraField(field) {
+export function kiaraField(field) {
   const common = { nullable: field.nullable === true, ignoreIndex: field.indexed === false };
   switch (field.type) {
     case "number": return numberField(field.name, common);
@@ -111,13 +113,14 @@ function kiaraField(field) {
       ...(SECONDARY[field.type] ? { secondaryType: SECONDARY[field.type] } : {}),
       ...(field.prefixLength ? { numericStartPos: field.prefixLength } : {}),
       ...(field.stemmed ? { stemmedIndex: true } : {}),
+      ...(field.oneEditAway ? { oneEditAway: true } : {}),
     });
   }
 }
 
 const rangeText = (range) => `${range.prefix ?? ""}${range.low}->${range.high}`;
 
-function kiaraValue(field, value) {
+export function kiaraValue(field, value) {
   if (isMissing(value)) return null;
   if (LIST_TYPES.has(field.type)) return value.join(",");
   if (RANGE_TYPES.has(field.type)) return rangeText(value);
@@ -133,7 +136,7 @@ const OPERATORS = {
   anyOrNull: Operator.CONTAINS_EITHER_INCLUDING_NULL,
 };
 
-function kiaraCondition(clause) {
+export function kiaraCondition(clause) {
   if (clause.op === "between") {
     return { field: clause.field, operator: Operator.BETWEEN, lowerValue: clause.low, upperValue: clause.high };
   }

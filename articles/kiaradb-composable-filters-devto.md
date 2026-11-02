@@ -74,7 +74,7 @@ low-variety fields first and unique IDs last.
 
 ## Run it: one prepared store, many filter combinations
 
-Install `@kapoorlabs/kiara-ts@1.1.0` from npm, save this as
+Install `@kapoorlabs/kiara-ts@1.2.1` from npm, save this as
 `composable-search.mjs`, and run `node composable-search.mjs`. Each fictional row
 fails for a different reason:
 
@@ -164,7 +164,7 @@ import { DictionaryTrie, KeywordSearch, QueryInterpreter } from "@kapoorlabs/kia
 const catalog = new Store(defineSchema([
   textField("status"),
   textField("region"),
-  textField("title", { stemmedIndex: true }),
+  textField("title", { stemmedIndex: true, oneEditAway: true }),
   textField("sku", { ignoreIndex: true }),
 ]), { normalizationProfile: NormalizationProfile.NATIVE });
 catalog.loadRows([
@@ -194,7 +194,7 @@ console.log(JSON.stringify({
 ```
 
 `wir` completes from a word trie. `lights` matches "Lighting" and "Light"
-through English stemming. `wirelss` is one edit from `wireless`, and the
+through English stemming. `oneEditAway` lets `wirelss` correct to `wireless`, and the
 response reports the correction so a UI can show it. `active emea` names no
 fields: the interpreter finds which field holds each value and turns them into
 two equality conditions. Ambiguous values are reported, not guessed.

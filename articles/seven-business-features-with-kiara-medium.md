@@ -16,15 +16,13 @@ KiaraDB's TypeScript library gives each a representation and compatible operator
 Preparation builds internal indexes for the declared searchable fields; there
 is no separate composite-index declaration for this particular combination.
 
-The example below runs through JavaScript without compilation. Its output was
-verified on **1.1.0** and the optimized **1.1.1-search.0** candidate behind
-[the 1.2.0 release](https://github.com/kapoorlabs/kiara-ts/releases/tag/v1.2.0).
-That release's notes report npm publication blocked, so the install below stays
-pinned to 1.1.0. The three records are teaching data, not a benchmark.
+The example below runs through JavaScript without compilation. Its output is
+verified on kiara-ts **1.2.1**. The three records are teaching data, not a
+benchmark.
 
 ## One query, three matching rules
 
-Install `@kapoorlabs/kiara-ts@1.1.0`, save this as `advanced-filters.mjs`,
+Install `@kapoorlabs/kiara-ts@1.2.1`, save this as `advanced-filters.mjs`,
 and run `node advanced-filters.mjs`.
 
 ```javascript

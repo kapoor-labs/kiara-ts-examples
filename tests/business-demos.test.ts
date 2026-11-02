@@ -69,9 +69,11 @@ test("unresolved strict filters block search rather than showing partial results
   assert.throws(() => discoverProducts(store, "one two three four five six seven eight nine ten eleven", ""), /10 distinct/);
 });
 test("real title corpus demonstrates actual correction and stemming, not semantic guesses", () => {
-  const typo = search.bestMatch("latern", { fields: ["title"], limit: products.length });
-  assert.deepEqual(typo.correctedKeywords, { latern: "lantern" });
-  assert.equal(typo.results.length, 20);
+  const typo = search.bestMatch("lanern", { fields: ["title"], limit: products.length });
+  assert.deepEqual(typo.correctedKeywords, { lanern: "lantern" });
+  assert.equal(typo.results.length, 18);
+  // Java-compatible correction follows one greedy trie path, so an early typo is not corrected.
+  assert.deepEqual(search.bestMatch("latern", { fields: ["title"] }).correctedKeywords, {});
   const stemmed = search.bestMatch("decorating", { fields: ["title"], limit: products.length });
   assert.deepEqual(stemmed.correctedKeywords, {});
   assert.ok(stemmed.results.length > 100);

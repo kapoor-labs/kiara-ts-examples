@@ -1,9 +1,9 @@
 # KiaraDB vs Fuse.js: Faster Queries or Faster Builds? A Side-by-Side Benchmark
 
 Fuse.js is a popular fuzzy-search library for JavaScript. KiaraDB is a newer in-memory search engine for TypeScript and Java that indexes every field before the first query.
-A benchmark over five datasets shows a clear trade-off: KiaraDB answered every query both libraries could run faster, while Fuse.js built its index 11 to 25 times faster, used far less memory, and matched text more flexibly.
+A benchmark over five datasets shows a clear trade-off: KiaraDB answered every query both libraries could run faster, while Fuse.js built its index 13 to 26 times faster, used far less memory, and matched text more flexibly.
 
-![Typo search over 100,000 products took 1.95 ms in KiaraDB, 422 ms in tuned Fuse.js, and 601 ms in default Fuse.js. Building the indexes took 4,286 ms in KiaraDB and 266 ms in Fuse.js.](./images/kiaradb-vs-fusejs.png)
+![Typo search over 100,000 products took 1.36 ms in KiaraDB, 432 ms in tuned Fuse.js, and 630 ms in default Fuse.js. Building the indexes took 4,046 ms in KiaraDB and 233 ms in Fuse.js.](./images/kiaradb-vs-fusejs.png)
 
 *Disclosure: the author of this article created KiaraDB, and the draft was prepared with AI assistance. Every number comes from the open benchmark linked at the end, which anyone can rerun.*
 
@@ -11,7 +11,7 @@ A benchmark over five datasets shows a clear trade-off: KiaraDB answered every q
 
 **Fuse.js** needs almost no preparation. At search time it scores every record with approximate string matching, so it tolerates several typos, matches parts of words, and ranks by relevance.
 
-**KiaraDB** asks for a schema and builds one index per field up front. Queries combine those indexes, so any mix of fields, numbers, dates, lists, and stored ranges works without a composite index. Its text search corrects one typo per word against the indexed words.
+**KiaraDB** asks for a schema and builds one index per field up front. Queries combine those indexes, so any mix of fields, numbers, dates, lists, and stored ranges works without a composite index. On fields marked `oneEditAway`, its text search corrects one typo per word against the indexed words.
 
 Fuse.js does its work during the search; KiaraDB does most of it before.
 
@@ -42,7 +42,7 @@ const fuseIds = fuse
 const store = new Store(defineSchema([
   textField("status", { caseInsensitive: true }),
   textField("region", { caseInsensitive: true }),
-  textField("title", { caseInsensitive: true }),
+  textField("title", { caseInsensitive: true, oneEditAway: true }),
   textField("id", { ignoreIndex: true }),
 ]), { normalizationProfile: NormalizationProfile.NATIVE });
 store.loadRows(products);
@@ -78,14 +78,14 @@ Median latency at 100,000 records:
 
 | Scenario | KiaraDB | Fuse.js defaults | Fuse.js tuned |
 |---|---:|---:|---:|
-| Typo search "wireles lamp", top 10 | 1.95 ms | 601 ms | 422 ms |
-| Stemmed search "chargers", top 10 | 1.0 ms | 363 ms | 385 ms |
-| Typo search with two filters, top 10 | 26.6 ms | 104 ms | 115 ms |
-| Three fields equal (299 matches) | 0.37 ms | 47 ms | 49 ms |
-| One date equal (292 matches) | 0.28 ms | 45 ms | 46 ms |
-| Two broad fields equal (17,605 matches) | 39.5 ms | 52.5 ms | 52.9 ms |
+| Typo search "wireles lamp", top 10 | 1.36 ms | 630 ms | 432 ms |
+| Stemmed search "chargers", top 10 | 0.13 ms | 370 ms | 386 ms |
+| Typo search with two filters, top 10 | 5.9 ms | 104 ms | 113 ms |
+| Three fields equal (299 matches) | 0.16 ms | 43 ms | 41 ms |
+| One date equal (292 matches) | 0.32 ms | 37 ms | 36 ms |
+| Two broad fields equal (17,605 matches) | 7.1 ms | 44 ms | 43 ms |
 
-KiaraDB was faster in all 26 shared exact scenarios, but the margin ranged from 1.3× to 515×. It was widest for selective conditions and short result lists, and narrowest when conditions matched many records: joining two large per-field indexes costs almost as much as scoring every record. The same effect cut the filtered typo search to about 4×.
+KiaraDB was faster in all 26 shared exact scenarios, but the margin ranged from 5.8× to 3,845×. It was widest for selective conditions and short result lists, and narrowest when conditions matched many records: joining two large per-field indexes costs a large share of scoring every record. The same effect cut the filtered typo search to about 18×.
 
 The other 66 exact scenarios need features Fuse.js does not express exactly, such as numeric and date comparisons, stored ranges, missing-value tests, and exclusions. That count reflects KiaraDB's feature set more than performance.
 
@@ -93,20 +93,20 @@ The other 66 exact scenarios need features Fuse.js does not express exactly, suc
 
 | Dataset | Build: KiaraDB / Fuse.js | Memory: KiaraDB / Fuse.js |
 |---|---:|---:|
-| Retail, 3,788 | 338 / 24 ms | 14.6 / 4.3 MB |
-| Catalog, 10,000 | 520 / 47 ms | 53 / 11 MB |
-| Catalog, 100,000 | 4,286 / 266 ms | 489 / 110 MB |
-| Schedule, 10,000 | 749 / 35 ms | 93 / 10 MB |
-| Schedule, 100,000 | 7,513 / 299 ms | 871 / 101 MB |
+| Retail, 3,788 | 362 / 21 ms | 14.5 / 4.3 MB |
+| Catalog, 10,000 | 474 / 36 ms | 52 / 11 MB |
+| Catalog, 100,000 | 4,046 / 233 ms | 477 / 110 MB |
+| Schedule, 10,000 | 668 / 33 ms | 85 / 10 MB |
+| Schedule, 100,000 | 6,741 / 264 ms | 761 / 101 MB |
 
-Fuse.js is clearly ahead here. KiaraDB's per-field indexes take seconds to build at 100,000 records and use three to nine times the memory. KiaraDB also cannot add or remove a single record; changes mean rebuilding a snapshot, while Fuse.js updates its index in place.
+Fuse.js is clearly ahead here. KiaraDB's per-field indexes take seconds to build at 100,000 records and use three to eight times the memory. KiaraDB also cannot add or remove a single record; changes mean rebuilding a snapshot, while Fuse.js updates its index in place.
 
 ## Result quality
 
 Neither library won every quality check:
 
 - **Fuse.js depends on configuration.** With defaults, none of its top 10 results for `wireles lamp` contained both words; the tuned configuration got all 10 right.
-- **KiaraDB's correction can pick the wrong word.** It chooses the alphabetically first one-edit match, so on the retail data `holdr` became `hldr`, an abbreviation in the source. One of its 10 results was relevant, against 8 and 10 for Fuse.js.
+- **KiaraDB's correction is narrower.** It fixes one edit per word along a single path through the indexed words, so an early typo stays uncorrected. When it corrected, all results were relevant: 10 of 10 for `wireles lamp` and `candle holdr`.
 - **Result lists differ.** KiaraDB returns only records that match after correction. Fuse.js fills the list with the nearest matches: with filters on 10,000 records it returned 10 results, 3 relevant, while KiaraDB returned 3, all relevant.
 
 ## Features only one library has
@@ -124,7 +124,7 @@ The two also combine: KiaraDB applies structured filters, and Fuse.js ranks the 
 
 ## Limits of this comparison
 
-The results come from one machine, with mostly synthetic data. KiaraDB's author designed the scenarios, so they explore KiaraDB's features more deeply than Fuse.js's, and the relevance score is deliberately simple. KiaraDB was measured on [kiara-ts 1.2.0](https://github.com/kapoorlabs/kiara-ts/releases/tag/v1.2.0); the example above also runs on 1.1.0 from npm.
+The results come from one machine, with mostly synthetic data. KiaraDB's author designed the scenarios, so they explore KiaraDB's features more deeply than Fuse.js's, and the relevance score is deliberately simple. KiaraDB was measured on [kiara-ts 1.2.1](https://www.npmjs.com/package/@kapoorlabs/kiara-ts/v/1.2.1), which the example above also uses.
 
 ## Reproduce it
 

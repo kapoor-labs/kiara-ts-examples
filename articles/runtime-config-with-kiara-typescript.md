@@ -27,14 +27,9 @@ precedence are application conventions, not hidden database features.
 
 ## Run the decision, including the tie
 
-Install `@kapoorlabs/kiara-ts@1.1.0`, save this as `rules.mjs`, and run
+Install `@kapoorlabs/kiara-ts@1.2.1`, save this as `rules.mjs`, and run
 `node rules.mjs`. These are fictional rules to illustrate policy, not defaults
 your application should inherit.
-
-The same decisions were verified on **1.1.1-search.0**, the optimized candidate
-behind [1.2.0 on GitHub](https://github.com/kapoorlabs/kiara-ts/releases/tag/v1.2.0).
-Its release notes report npm publication blocked; the install stays at 1.1.0.
-Faster candidate retrieval does not change the application's precedence policy.
 
 ```javascript
 import {
@@ -120,8 +115,9 @@ outrank group, encode that rule explicitly and test it.
 Production responses should include the candidate trace and active revision.
 The companion application does; the short example prints only the outcomes.
 
-Do not substitute TypeScript `KeywordSearch.minimumMatch` for this resolver.
-It selects a lowest positive token-match group, not business-rule specificity.
+`KeywordSearch.minimumMatch` returns only rules whose values are exactly the
+words you pass. It does not fall back to wildcard rules or report ties, which is
+what this resolver adds.
 
 ## Keep the previous snapshot until the replacement is ready
 

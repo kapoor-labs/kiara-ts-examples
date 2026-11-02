@@ -36,7 +36,7 @@ demo; the new article itself must remain domain-neutral.
 | A2 | [Medium filters](../seven-business-features-with-kiara-medium.md): **Tags, Dates, and Ranges: Build Richer Filters with KiaraDB** | Express all-of tags plus a numeric band and a date point inside a stored window | Structured filtering tutorial; ALL/ANY/NOT, null policy, 12 secondary types, projection | 500-700 words |
 | A3 | [LinkedIn discovery](../filterless-parts-finder-linkedin.md): **Type the Value. Let KiaraDB Find the Field.** | `active emea` becomes two field conditions without selecting two dropdowns | Whole-value discovery, declared aliases, ambiguity instead of guessing | 280-400 words |
 | A4 | [Medium interpreter](../filterless-parts-finder-medium.md): **500ms or 0.5s? Make Equivalent Queries Return the Same Results.** | Show two inputs returning identical records, then expose an ambiguous duration | Unit metadata, numeric ranges, strict interpretation, editable source spans | 500-700 words |
-| A5 | [Text search](../airport-typeahead-with-kiara-typescript.md): **Fix the Typo, Keep the Filter: Better Text Search with KiaraDB** | A misspelling can recover while an exact status/score filter still excludes rows | Prefix completion vs record retrieval; typo/stemming; best/minimum scores; metadata | 500-700 words |
+| A5 | [Text search](../airport-typeahead-with-kiara-typescript.md): **Fix the Typo, Keep the Filter: Better Text Search with KiaraDB** | A misspelling can recover while an exact status/score filter still excludes rows | Prefix completion vs record retrieval; typo/stemming; best/minimum match; metadata | 500-700 words |
 | A6 | [Rules](../runtime-config-with-kiara-typescript.md): **Which Rule Won? Query, Explain, and Refresh Configuration with KiaraDB** | Find candidate rules, expose a tie, and keep the last good snapshot after rejection | Wildcards + application ranking, projections, replacement lifecycle, ownership boundary | 500-750 words |
 | A7 | [HackerNoon](../kiaradb-local-search-hackernoon.md): **Key-Value Lookups Break Down at 100 Attributes. Here's What I Built Instead.** | Work backward from the problem: many attributes, unpredictable combinations, exploding per-combination lookups, and costly ID-set intersection | Author's travel/e-commerce origin story, verified Java and TypeScript snippets before a paper-backed algorithm walkthrough, same-library before/after measurements; KiaraDB absent from title and opening | 1,000-1,300 prose words, plus snippets |
 
@@ -62,10 +62,8 @@ concise explanation. The inventory retains details too specialized for a headlin
   lessons domain-neutral; the flagship uses a familiar light-search example
   without restricting the product's positioning to retail.
 - Technical tutorials get one complete runnable JavaScript example using the
-  TypeScript library. Keep npm instructions pinned to 1.1.0 until newer registry
-  availability is verified. State that outputs also passed on the optimized
-  1.1.1-search.0 candidate behind the 1.2.0 GitHub release; do not confuse that
-  release with successful npm publication. HackerNoon instead pairs one Java
+  TypeScript library. Pin npm instructions to 1.2.1, the first Java-compatible
+  release, and keep every snippet passing against it. HackerNoon instead pairs one Java
   example with one TypeScript example over identical data; the TypeScript block
   is executed by the article tests, and the Java block is compiled separately.
 - Extract and execute the actual Markdown code blocks in automated checks;

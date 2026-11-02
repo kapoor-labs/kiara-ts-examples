@@ -6,15 +6,12 @@ No articles have been submitted or published by this task.
 
 ## Package and performance status
 
-The [1.2.0 GitHub release](https://github.com/kapoorlabs/kiara-ts/releases/tag/v1.2.0)
-includes the optimized TypeScript engine, but its release notes report npm
-publication blocked. The public-registry check in this environment failed its
-TLS handshake; it did not independently establish availability.
-
-The drafts therefore keep their **1.1.0 npm installation instructions** and
-note that the same outputs passed on **1.1.1-search.0**, the candidate behind
-1.2.0. Before publishing, verify the actual distribution path; only update npm
-pins after the version is available and the snippets pass against that package.
+`@kapoorlabs/kiara-ts` **1.2.1** is published on npm. Its search behavior follows
+the Java Kiara reference, so some keyword results differ from 1.2.0: spelling
+correction requires `oneEditAway` on the field, matching is case-sensitive unless
+the field is `caseInsensitive`, and `minimumMatch` uses Java's rule. Every
+runnable article snippet installs 1.2.1 and is verified by `npm test` against it.
+Before publishing, confirm the snippets still pass against the npm package.
 
 The DEV and HackerNoon performance tables come from the
 [recorded candidate comparison](https://github.com/kapoorlabs/kiara-ts/blob/v1.2.0/docs/search-execution.md#measured-comparison-with-typescript-110).
@@ -159,11 +156,12 @@ Before publishing:
 - **Commit and push** the benchmark scripts, report, and results. The article's
   clone command and report link point to the `main` branch of
   `kapoor-labs/kiara-ts-examples`, which does not contain them yet.
-- Numbers cited: typo search 1.95 ms vs 422/601 ms (tuned/default Fuse.js) at
-  100,000 products; KiaraDB faster in all 26 exact scenarios Fuse.js can express
-  (1.3×-515×); filtered typo search about 4×; build 4.3-7.5 s and 489-871 MB vs
-  about 0.3 s and 101-110 MB at 100,000 records (11-25× faster builds, 3-9× less
-  memory for Fuse.js). Rerun the benchmark and update these if the engine changes.
+- Numbers cited (kiara-ts 1.2.1): typo search 1.36 ms vs 432/630 ms (tuned/default
+  Fuse.js) at 100,000 products; KiaraDB faster in all 26 exact scenarios Fuse.js
+  can express (5.8×-3,845×); filtered typo search about 18×; build 4.0-6.7 s and
+  477-761 MB vs about 0.2-0.3 s and 101-110 MB at 100,000 records (13-26× faster
+  builds, 3-8× less memory for Fuse.js). Rerun the benchmark and update these if
+  the engine changes.
 - Deliberately excluded: the "lanterns" ratio (KiaraDB returned only two
   records) and the as-you-type ratio (the engines return words versus records).
 - Upload the [cover PNG](../images/kiaradb-vs-fusejs.png) and keep the
@@ -171,26 +169,26 @@ Before publishing:
 
 ## Launch article: introducing KiaraDB
 
-[Meet KiaraDB: Client-Side Search Up to 500× Faster Than Fuse.js. It's Not Even Close.](../introducing-kiaradb-vs-fusejs.md)
+[Meet KiaraDB: Client-Side Search Up to 3,800× Faster Than Fuse.js. It's Not Even Close.](../introducing-kiaradb-vs-fusejs.md)
 is the openly promotional companion to the neutral comparison. It introduces
 KiaraDB's strengths with one runnable snippet, then makes the bold claim on
 query speed only, and keeps a short "What the speed costs" section (build time,
 memory, snapshots, one-edit correction) so readers who open the report find no
 surprises. The title says "client-side search" rather than "typo search" to
-reach domain readers who filter structured data; "up to 500×" is the largest
-measured gain (515×), so do not shorten it to a flat "500× faster".
+reach domain readers who filter structured data; "up to 3,800×" is the largest
+measured gain (3,845×, on a 0.016 ms first-20 list), so do not shorten it to a
+flat "3,800× faster".
 
 - Same prerequisite: **commit and push** the benchmark before publishing.
 - Numbers cited, all at 100,000 records against the faster Fuse.js
-  configuration: first 20 active 0.15 vs 75 ms (515×; the "up to 500×" title), stemming 1.0 vs 363 ms
-  (365×), typo 1.95 vs 422 ms (216×), date equality 0.28 vs
-  45 ms (163×), three fields 0.37 vs 47 ms (128×), contains all of two tags 3.2 vs 40 ms (12×);
-  26 of 26 shared exact scenarios won, 24-65× per-dataset geometric mean; 66 of
+  configuration: first 20 active 0.016 vs 62 ms (3,845×; the "up to 3,800×" title), stemming 0.13 vs 370 ms
+  (2,937×), typo 1.36 vs 432 ms (318×), three fields 0.16 vs 41 ms (262×),
+  date equality 0.32 vs 36 ms (114×), contains all of two tags 2.4 vs 32 ms (13×);
+  26 of 26 shared exact scenarios won, 28-116× per-dataset geometric mean; 66 of
   92 scenarios Fuse.js cannot express; default Fuse.js 0 of 10 relevant on
-  `wireles lamp`; build 4.3 s / 489 MB vs 0.27 s / 110 MB, repaid after about
-  ten typo searches.
-- The snippet runs unchanged on kiara-ts 1.1.0 from npm; the benchmark used
-  1.2.0 from GitHub.
+  `wireles lamp`; build 4.0 s / 477 MB vs 0.23 s / 110 MB, repaid after about
+  nine typo searches.
+- The snippet runs on kiara-ts 1.2.1 from npm.
 - Upload the [hero PNG](../images/kiaradb-vs-fusejs-hero.png) as the cover
   (the [speedup chart](../images/introducing-kiaradb.png) sits inside the
   article) and keep the disclosure line. The same DEV and Reddit self-promotion rules apply, more

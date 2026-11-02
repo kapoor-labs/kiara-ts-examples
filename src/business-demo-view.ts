@@ -37,9 +37,9 @@ const matches = keywordSearch.bestMatch(keywords, {
   "keyword-discovery": {
     title: "Useful search without a search server",
     description: "Search every product title with one-edit correction and English stemming. Inspect the actual tokens and corrections.",
-    boundary: "Lexical bestMatch returns the highest positive token-match group. This is not semantic search, a chatbot, or general spell checking. The corpus is the real 3,788-product catalog.",
-    controls: `<label>Title keywords<input id="keyword-input" value="latern" maxlength="256" /></label>
-      <div class="actions"><button id="keyword-typo" type="button" class="secondary-button">Typo: latern</button>
+    boundary: "Lexical bestMatch returns the rows matching the most keywords. Correction follows one greedy path through the title words, as in Java Kiara, so a typo near the start of a word (latern) may not be corrected. This is not semantic search, a chatbot, or general spell checking. The corpus is the real 3,788-product catalog.",
+    controls: `<label>Title keywords<input id="keyword-input" value="lanern" maxlength="256" /></label>
+      <div class="actions"><button id="keyword-typo" type="button" class="secondary-button">Typo: lanern</button>
       <button id="keyword-stem" type="button" class="secondary-button">Stem: decorating / decoration</button>
       <button id="keyword-none" type="button" class="secondary-button">No matching token</button></div>`,
     code: `// title is configured with stemmedIndex: true and oneEditAway: true.
@@ -314,7 +314,7 @@ export function createBusinessDemoView(
       on("#product-market", "change", update);
       on("#product-order", "change", update);
       on("#product-bags", "click", () => { keywords.value = "bag"; filters.value = "price<5GBP sold>=100"; market.value = ""; update(); });
-      on("#product-lanterns", "click", () => { keywords.value = "latern"; filters.value = "price<10GBP"; market.value = ""; update(); });
+      on("#product-lanterns", "click", () => { keywords.value = "lanern"; filters.value = "price<10GBP"; market.value = ""; update(); });
       on("#product-clear", "click", () => { keywords.value = ""; filters.value = ""; market.value = ""; update(); });
       update();
     }
@@ -332,7 +332,7 @@ export function createBusinessDemoView(
           : `${store.getLoadedRowCount().toLocaleString()} titles searched. Corrections and used tokens are shown below.`);
       };
       on("#keyword-input", "input", update);
-      on("#keyword-typo", "click", () => { input.value = "latern"; update(); });
+      on("#keyword-typo", "click", () => { input.value = "lanern"; update(); });
       on("#keyword-stem", "click", () => { input.value = "decorating"; update(); });
       on("#keyword-none", "click", () => { input.value = "zzzzzzzx"; update(); });
       update();

@@ -68,7 +68,7 @@ const CATALOG_FIELDS = [
   { name: "views", type: "long" },
   { name: "tags", type: "list", nullable: true },
   { name: "sizes", type: "numberList" },
-  { name: "title", type: "text", stemmed: true },
+  { name: "title", type: "text", stemmed: true, oneEditAway: true },
   { name: "id", type: "text", indexed: false },
 ];
 
@@ -135,7 +135,6 @@ export function catalog(size, seed = 20261027) {
         where: [{ field: "status", op: "eq", values: ["active"] }, { field: "region", op: "eq", values: ["emea"] }],
       },
       { id: "stemming", category: "Text search", feature: "English stemming", label: "\"chargers\", top 10", kind: "fuzzy", input: "chargers", intended: ["charger"], limit: 10 },
-      { id: "minimum", category: "Text search", feature: "Keyword minimum match", label: "\"wireless lamp\" minimum match, top 10", kind: "fuzzy", mode: "minimum", input: "wireless lamp", limit: 10 },
       { id: "prefix", category: "Text search", feature: "As-you-type completion", label: "\"wirel\" typed so far, top 10", kind: "prefix", input: "wirel", limit: 10 },
       { id: "correction", category: "Text search", feature: "One-edit spelling correction", label: "\"keybord\" -> keyboard", kind: "correction", input: "keybord", expected: "keyboard" },
     ],
@@ -246,7 +245,7 @@ const RETAIL_FIELDS = [
   { name: "markets", type: "list" },
   { name: "unitPrice", type: "number" },
   { name: "unitsSold", type: "number" },
-  { name: "title", type: "text", stemmed: true },
+  { name: "title", type: "text", stemmed: true, oneEditAway: true },
   { name: "id", type: "text", indexed: false },
 ];
 
@@ -276,7 +275,6 @@ export function retailCatalog(path = new URL("../../public/data/retail-products.
       { id: "between", category: "Numeric", feature: "BETWEEN", label: "markets contain Japan AND unitPrice between 1 and 2", kind: "exact", where: [{ field: "markets", op: "any", values: ["Japan"] }, { field: "unitPrice", op: "between", low: 1, high: 2 }] },
       { id: "typo", category: "Text search", feature: "Keyword best match with typo correction", label: "\"candle holdr\", top 10", kind: "fuzzy", input: "candle holdr", intended: ["candle", "holder"], limit: 10 },
       { id: "stemming", category: "Text search", feature: "English stemming", label: "\"lanterns\", top 10", kind: "fuzzy", input: "lanterns", intended: ["lantern"], limit: 10 },
-      { id: "minimum", category: "Text search", feature: "Keyword minimum match", label: "\"candle holder\" minimum match, top 10", kind: "fuzzy", mode: "minimum", input: "candle holder", limit: 10 },
       { id: "prefix", category: "Text search", feature: "As-you-type completion", label: "\"lant\" typed so far, top 10", kind: "prefix", input: "lant", limit: 10 },
       { id: "correction", category: "Text search", feature: "One-edit spelling correction", label: "\"lanern\" -> lantern", kind: "correction", input: "lanern", expected: "lantern" },
     ],
