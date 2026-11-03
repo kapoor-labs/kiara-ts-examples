@@ -2,6 +2,8 @@
 
 Interactive local playground for [`@kapoorlabs/kiara-ts`](https://www.npmjs.com/package/@kapoorlabs/kiara-ts).
 
+Try it in the browser, nothing to install: https://kapoor-labs.github.io/kiara-ts-examples/
+
 When you start this repo locally, it opens a browser portal where you can:
 
 - query all 5,043 movies or 7,698 airports from real CSV files,
