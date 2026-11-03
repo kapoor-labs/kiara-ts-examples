@@ -3,7 +3,7 @@ import {
   type Condition, type OperatorType, type Store,
 } from "@kapoorlabs/kiara-ts";
 import {
-  CAPABILITIES, CSV_MAX_BYTES, CatalogSnapshots, RETAIL_DEFINITION, benchmarkRequest,
+  CAPABILITIES, CSV_MAX_BYTES, CatalogSnapshots, PRODUCT_KEYWORD_FIELDS, RETAIL_DEFINITION, benchmarkRequest,
   connectorStore, discoverProducts, importCsv, inspectCsv, isRecord,
   matchConnectors, matchOperatingRange, operatingStore, validateIterations,
   type CsvInspection, type CsvMapping, type FeatureDemoId,
@@ -30,7 +30,7 @@ const DESCRIPTIONS: Record<FeatureDemoId, DemoDescription> = {
 // Block unresolved filters; never ignore a clause.
 const conditions = interpretation.filters.map(f => f.condition);
 const matches = keywordSearch.bestMatch(keywords, {
-  fields: ["title"], conditions, limit: store.getLoadedRowCount()
+  fields: ["title", "titleStem"], conditions, limit: store.getLoadedRowCount()
 });
 // The application renders cards and optionally sorts the matching records.`,
   },
@@ -42,9 +42,10 @@ const matches = keywordSearch.bestMatch(keywords, {
       <div class="actions"><button id="keyword-typo" type="button" class="secondary-button">Typo: lanern</button>
       <button id="keyword-stem" type="button" class="secondary-button">Stem: decorating / decoration</button>
       <button id="keyword-none" type="button" class="secondary-button">No matching token</button></div>`,
-    code: `// title is configured with stemmedIndex: true and oneEditAway: true.
+    code: `// title has oneEditAway: true; titleStem is the same text with stemmedIndex: true.
+// Separate fields keep stems out of the correction dictionary.
 const result = new KeywordSearch(store).bestMatch(input, {
-  fields: ["title"], limit: store.getLoadedRowCount()
+  fields: ["title", "titleStem"], limit: store.getLoadedRowCount()
 });
 // Inspect result.usedKeywords, correctedKeywords, matchedKeywords, and results.`,
   },
@@ -323,7 +324,7 @@ export function createBusinessDemoView(
       const input = element<HTMLInputElement>("#keyword-input");
       const update = () => {
         if (!input.value.trim()) throw new Error("Enter at least one title keyword.");
-        const response = search.bestMatch(input.value, { fields: ["title"], limit: store.getLoadedRowCount() });
+        const response = search.bestMatch(input.value, { fields: PRODUCT_KEYWORD_FIELDS, limit: store.getLoadedRowCount() });
         showRows(response.results, ["sku", "title", "unitPrice"]);
         const { results: _rows, ...metadata } = response;
         inspect(metadata);

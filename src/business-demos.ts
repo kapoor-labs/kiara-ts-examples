@@ -32,13 +32,16 @@ export const RETAIL_DEFINITION: DatasetDefinition = {
   csvFile: "retail-products.csv", recordCount: 3788,
   sourceUrl: "https://doi.org/10.24432/C5BW33",
   fields: [
-    field("sku"), field("title", "text", { stemmedIndex: true, oneEditAway: true }),
+    field("sku"), field("title", "text", { oneEditAway: true }),
+    // Same text, stemmed. Keeping stems out of title's correction dictionary lets both features work.
+    { ...field("titleStem", "text", { stemmedIndex: true }), csvColumn: "title" },
     field("unitPrice", "number"), field("maxUnitPrice", "number"),
     field("salesRows", "number"), field("unitsSold", "number"),
     field("markets", "text", { secondaryType: "commaSeparatedStrings" }),
   ],
   defaultScript: 'return { conditions: [{ field: "unitPrice", operator: Operator.LESS_THAN, values: [5] }], limit: 25 };',
 };
+export const PRODUCT_KEYWORD_FIELDS = ["title", "titleStem"];
 const productInterpreters = new WeakMap<Store<AnyRow>, QueryInterpreter<AnyRow>>();
 export function productInterpreter(store: Store<AnyRow>): QueryInterpreter<AnyRow> {
   const cached = productInterpreters.get(store);
@@ -54,12 +57,18 @@ export function productInterpreter(store: Store<AnyRow>): QueryInterpreter<AnyRo
 }
 export function discoverProducts(store: Store<AnyRow>, keywords: string, input: string, market = "") {
   const interpreter = productInterpreter(store);
-  const interpretation = interpreter.interpret(input);
+  let interpretation = interpreter.interpret(input);
+  // titleStem only duplicates title for stemmed keyword search, so a title value is never truly ambiguous.
+  const titleCopies = Object.fromEntries(interpretation.issues
+    .filter((issue) => issue.kind === "ambiguous" && issue.candidates.length === 2
+      && issue.candidates.every((candidate) => candidate.field === "title" || candidate.field === "titleStem"))
+    .map((issue) => [issue.id, "title"]));
+  if (Object.keys(titleCopies).length) interpretation = interpreter.interpret(input, titleCopies);
   if (interpretation.issues.length) return { status: "blocked", interpretation } as const;
   const conditions: Condition<AnyRow>[] = interpretation.filters.map((filter) => filter.condition);
   if (market) conditions.push({ field: "markets", operator: Operator.CONTAINS_EITHER, values: [market] });
   const keywordResult = keywords.trim()
-    ? new KeywordSearch(store).bestMatch(keywords, { fields: ["title"], conditions, limit: store.getLoadedRowCount() })
+    ? new KeywordSearch(store).bestMatch(keywords, { fields: PRODUCT_KEYWORD_FIELDS, conditions, limit: store.getLoadedRowCount() })
     : undefined;
   if (keywordResult?.truncated) throw new Error("Use at most 10 distinct title keywords; no truncated query is displayed.");
   const rows = keywordResult?.results ?? (conditions.length ? store.search(conditions) : store.queryAll());
@@ -150,7 +159,7 @@ export function validateRetailRows(value: unknown): AnyRow[] {
     }
     if (!Number.isSafeInteger(row.salesRows) || !Number.isSafeInteger(row.unitsSold) ||
         Number(row.unitPrice) > Number(row.maxUnitPrice)) throw new Error(`Product ${sku}: invalid counts or reversed price bounds.`);
-    return Object.fromEntries(RETAIL_DEFINITION.fields.map(({ name }) => [name, row[name]]));
+    return Object.fromEntries(RETAIL_DEFINITION.fields.map(({ name, csvColumn }) => [name, row[csvColumn ?? name]]));
   });
 }
 export class CatalogSnapshots {

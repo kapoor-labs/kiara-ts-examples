@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { InMemoryWorkerAdapter, KeywordSearch } from "@kapoorlabs/kiara-ts";
 import {
-  FEATURE_DEMOS, RETAIL_DEFINITION, CatalogSnapshots, benchmarkRequest, connectorStore,
+  FEATURE_DEMOS, PRODUCT_KEYWORD_FIELDS, RETAIL_DEFINITION, CatalogSnapshots, benchmarkRequest, connectorStore,
   discoverProducts, importCsv, inspectCsv, isFeatureDemo, isRecord, matchConnectors,
   matchOperatingRange, operatingStore, productInterpreter, validateIterations, validateRetailRows,
 } from "../src/business-demos.ts";
@@ -69,16 +69,26 @@ test("unresolved strict filters block search rather than showing partial results
   assert.throws(() => discoverProducts(store, "one two three four five six seven eight nine ten eleven", ""), /10 distinct/);
 });
 test("real title corpus demonstrates actual correction and stemming, not semantic guesses", () => {
-  const typo = search.bestMatch("lanern", { fields: ["title"], limit: products.length });
+  const fields = PRODUCT_KEYWORD_FIELDS;
+  const typo = search.bestMatch("lanern", { fields, limit: products.length });
   assert.deepEqual(typo.correctedKeywords, { lanern: "lantern" });
   assert.equal(typo.results.length, 18);
   // Java-compatible correction follows one greedy trie path, so an early typo is not corrected.
-  assert.deepEqual(search.bestMatch("latern", { fields: ["title"] }).correctedKeywords, {});
-  const stemmed = search.bestMatch("decorating", { fields: ["title"], limit: products.length });
+  assert.deepEqual(search.bestMatch("latern", { fields }).correctedKeywords, {});
+  const stemmed = search.bestMatch("decorating", { fields, limit: products.length });
   assert.deepEqual(stemmed.correctedKeywords, {});
   assert.ok(stemmed.results.length > 100);
   assert.ok(stemmed.results.some((row) => String(row.title).includes("DECORATION")));
-  assert.equal(search.bestMatch("zzzzzzzx", { fields: ["title"] }).results.length, 0);
+  assert.equal(search.bestMatch("zzzzzzzx", { fields }).results.length, 0);
+});
+test("the stemmed title copy follows title and never makes a title filter ambiguous", () => {
+  assert.ok(products.every((row) => row.titleStem === row.title));
+  const [first] = validateRetailRows([{ ...products[0], title: "NEW TITLE", titleStem: "stale" }]);
+  assert.equal(first.titleStem, "NEW TITLE");
+  const quoted = discoverProducts(store, "", '"WHITE LOVEBIRD LANTERN" price<10GBP');
+  assert.equal(quoted.status, "ready");
+  assert.deepEqual(quoted.conditions.map((condition) => condition.field), ["title", "unitPrice"]);
+  assert.deepEqual(quoted.rows.map((row) => row.sku), ["22224"]);
 });
 test("set requirements distinguish ALL, ANY, exclusion, missing, and unconstrained", () => {
   const connectors = connectorStore();

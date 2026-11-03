@@ -35,22 +35,25 @@ const store = new Store(defineSchema([
   textField("city", { caseInsensitive: true }),
   numberField("price"),
   textField("season", { secondaryType: "dateRange" }),
-  textField("title", { caseInsensitive: true, stemmedIndex: true, oneEditAway: true }),
+  textField("title", { caseInsensitive: true, oneEditAway: true }),
+  // A stemmed copy: keeping stems out of title's correction dictionary lets both features work.
+  textField("titleStem", { caseInsensitive: true, stemmedIndex: true }),
   textField("id", { ignoreIndex: true }),
 ]), { normalizationProfile: NormalizationProfile.NATIVE });
 store.loadRows([
   { city: "Lisbon", price: 120, season: "2026-06-01->2026-09-30", title: "Rooftop Jazz Concerts", id: "e1" },
   { city: "Lisbon", price: 45, season: "2026-07-01->2026-07-31", title: "Street Food Tour", id: "e2" },
   { city: "Porto", price: 60, season: "2026-05-01->2026-10-31", title: "River Wine Tasting", id: "e3" },
-]);
+].map((event) => ({ ...event, titleStem: event.title })));
 store.prepare();
 
 const ids = (rows) => rows.map((row) => row.id);
 const keywords = new KeywordSearch(store);
+const titles = { fields: ["title", "titleStem"] };
 const words = new DictionaryTrie();
 for (const row of store.queryAll()) words.addText(row.title);
 
-const typo = keywords.bestMatch("jazz concrt", { fields: ["title"] });
+const typo = keywords.bestMatch("jazz concrts", titles);
 console.log(JSON.stringify({
   // City, a stored date range, and a price bound, with no index declared for the combination.
   cheapInJuly: ids(store.search([
@@ -60,14 +63,14 @@ console.log(JSON.stringify({
   ])),
   typo: ids(typo.results),
   corrected: typo.correctedKeywords,
-  stemmed: ids(keywords.bestMatch("tours", { fields: ["title"] }).results),
+  stemmed: ids(keywords.bestMatch("tours", titles).results),
   typeahead: words.predict("ro", 3),
   byValue: ids(new QueryInterpreter(store).search("porto")),
 }));
 ```
 
 ```json
-{"cheapInJuly":["e2"],"typo":["e1"],"corrected":{"concrt":"concert"},"stemmed":["e2"],"typeahead":["rooftop"],"byValue":["e3"]}
+{"cheapInJuly":["e2"],"typo":["e1"],"corrected":{"concrts":"concerts"},"stemmed":["e2"],"typeahead":["rooftop"],"byValue":["e3"]}
 ```
 
 Structured filters, a stored date range, typo correction, stemming, completion, and value-only search, all from one prepared store.
