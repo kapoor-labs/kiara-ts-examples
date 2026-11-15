@@ -68,6 +68,16 @@ test("unresolved strict filters block search rather than showing partial results
   assert.equal(spy.mock.callCount(), 0);
   assert.throws(() => discoverProducts(store, "one two three four five six seven eight nine ten eleven", ""), /10 distinct/);
 });
+test("keyword demo uses the requested query for its default and typo preset", () => {
+  const view = readFileSync(new URL("../src/business-demo-view.ts", import.meta.url), "utf8");
+  const input = "wireles keybord nordline whte refurbishd";
+  assert.ok(view.includes(`id="keyword-input" value="${input}"`));
+  assert.ok(view.includes(`>Typo: ${input}</button>`));
+  assert.ok(view.includes(`on("#keyword-typo", "click", () => { input.value = "${input}"; update(); });`));
+  const result = search.bestMatch(input, { fields: PRODUCT_KEYWORD_FIELDS, limit: products.length });
+  assert.equal(result.truncated, false);
+  assert.ok(result.results.every((row) => products.includes(row)));
+});
 test("real title corpus demonstrates actual correction and stemming, not semantic guesses", () => {
   const fields = PRODUCT_KEYWORD_FIELDS;
   const typo = search.bestMatch("lanern", { fields, limit: products.length });
