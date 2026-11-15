@@ -46,7 +46,7 @@ boundaries.
 | Sidebar example | Try it | What Kiara contributes |
 |---|---|---|
 | **E-commerce discovery** | `bag` with `price<5GBP sold>=100`: 113 products; try an observed market, sort, typo preset, or browse all | Keyword best-match combined with interpreted numeric clauses and collection conditions |
-| **Typo-tolerant keyword search** | Default and typo preset: `wireles keybord nordline whte refurbishd`. The gift catalog has no Nordline keyboards; inspect the actual matched tokens rather than treating results as that product. Try `lanern` for `lantern` (18 products) or `decorating` for decoration through stemming (115 products). Like Java Kiara, correction follows one trie path, so `latern` is not corrected | Correction, stemming, and best-match retrieval, with inspectable metadata |
+| **Typo-tolerant keyword search** | `lanern` corrects to `lantern` (18 products); `decorating` matches decoration through English stemming (115 products). Like Java Kiara, correction follows one trie path, so an early typo such as `latern` is not corrected | Correction, stemming, and best-match retrieval, with inspectable metadata |
 | **Integration compatibility** | Require OAuth and Webhooks; toggle ALL to ANY; exclude On-prem agent | `CONTAINS_ALL`, `CONTAINS_EITHER`, and `NOT_CONTAINS` |
 | **Operating-envelope finder** | Cover -40 through 125 Celsius (14 components); try 150 (one) or 200 (none) | Point containment in a stored numeric range, including both endpoints of a requested interval |
 | **Safe catalog refresh** | Reject a broken replacement, prepare a valid price change, query the unchanged active store, then activate | `StoreLoader.replaceAll` prepares a distinct store; the application swaps the store and interpreter |

@@ -37,9 +37,9 @@ const matches = keywordSearch.bestMatch(keywords, {
   "keyword-discovery": {
     title: "Useful search without a search server",
     description: "Search every product title with one-edit correction and English stemming. Inspect the actual tokens and corrections.",
-    boundary: "Lexical bestMatch returns the rows matching the most keywords. Correction follows one greedy path through the title words, as in Java Kiara, so a typo near the start of a word (latern) may not be corrected. This is not semantic search, a chatbot, or general spell checking. The corpus is the real 3,788-product gift catalog, not an electronics catalog; the default query does not identify a Nordline keyboard.",
-    controls: `<label>Title keywords<input id="keyword-input" value="wireles keybord nordline whte refurbishd" maxlength="256" /></label>
-      <div class="actions"><button id="keyword-typo" type="button" class="secondary-button">Typo: wireles keybord nordline whte refurbishd</button>
+    boundary: "Lexical bestMatch returns the rows matching the most keywords. Correction follows one greedy path through the title words, as in Java Kiara, so a typo near the start of a word (latern) may not be corrected. This is not semantic search, a chatbot, or general spell checking. The corpus is the real 3,788-product catalog.",
+    controls: `<label>Title keywords<input id="keyword-input" value="lanern" maxlength="256" /></label>
+      <div class="actions"><button id="keyword-typo" type="button" class="secondary-button">Typo: lanern</button>
       <button id="keyword-stem" type="button" class="secondary-button">Stem: decorating / decoration</button>
       <button id="keyword-none" type="button" class="secondary-button">No matching token</button></div>`,
     code: `// title has oneEditAway: true; titleStem is the same text with stemmedIndex: true.
@@ -333,7 +333,7 @@ export function createBusinessDemoView(
           : `${store.getLoadedRowCount().toLocaleString()} titles searched. Corrections and used tokens are shown below.`);
       };
       on("#keyword-input", "input", update);
-      on("#keyword-typo", "click", () => { input.value = "wireles keybord nordline whte refurbishd"; update(); });
+      on("#keyword-typo", "click", () => { input.value = "lanern"; update(); });
       on("#keyword-stem", "click", () => { input.value = "decorating"; update(); });
       on("#keyword-none", "click", () => { input.value = "zzzzzzzx"; update(); });
       update();
